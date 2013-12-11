@@ -110,8 +110,7 @@ save_domdisks() {
 				blk_file="$OUTDIR/$target.raw.gz"
 				log "compress \`$blk_dev' -> \`${blk_file##*/}'"
 				touch "$sha_file"
-				ionice -c 3 -t dd if="$blk_dev" \
-					| pv -s `get_lvm_size "$source"` \
+				ionice -c 3 -t pv "$blk_dev" \
 					| nice -19 gzip -c \
 					| tee "$blk_file" \
 					| nice -19 shasum > "$sha_file"
