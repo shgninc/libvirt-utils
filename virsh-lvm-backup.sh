@@ -102,7 +102,7 @@ save_domdisks() {
 					| tee "$blk_file" \
 					| nice -19 shasum > "$sha_file"
 				log "write checksum file \`${sha_file##*/}'"
-				sed -i "s/-/$target.raw.gz" "$sha_file"
+				sed -i "s/-/$target.raw.gz/" "$sha_file"
 			done
 }
 
