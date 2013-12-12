@@ -141,7 +141,14 @@ then
 	exit 2
 fi
 
-echo 'restore domain $DOMAIN'
+echo -n 'Restore domain $DOMAIN? [y/N] '
+read ANS
+if [ \"\$ANS\" != y ]
+then
+	echo 'Canceled by user.'
+	exit 3
+fi
+echo START
 "
 		echo 'cd "`dirname "$0"`"'
 		virsh_domblklist "$DOMAIN" \
@@ -151,15 +158,17 @@ echo 'restore domain $DOMAIN'
 				lvm_name=`basename "$source"`
 				lvm_group=`get_lvm_group "$source"`
 				lvm_size=`get_lvm_size "$source"`
-				echo "echo 'restore virtual disk $target...'
+				echo "echo 'Verifying checksum file $blk_file...'
 ionice -c 3 shasum '$blk_file'
+echo 'Restoring virtual disk $target...'
 lvcreate -L'${lvm_size}b' -n '$lvm_name' '$lvm_group'
 nice -19 gzip -dc '$blk_file' | pv -s $lvm_size | ionice -c 3 dd of='$source'"
 			done
 
-		echo "virsh define $DOMAIN.xml
+		echo "echo 'Defining domain $DOMAIN'
+virsh define $DOMAIN.xml
 virsh dominfo $DOMAIN
-echo done
+echo DONE
 exit 0
 "
 	} > "$script"
