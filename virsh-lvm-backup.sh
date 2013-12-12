@@ -39,7 +39,7 @@ die() {
 
 # Log a message on STDOUT
 log() {
-	echo "$NAME: $*"
+	echo "`date '+[%F %T]'` $NAME: $*"
 }
 
 # Run virsh with default options
