@@ -77,7 +77,12 @@ create_snapshots() {
 	virsh_domblklist "$DOMAIN" \
 		| while read target source
 			do
-				lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "${DOMAIN}_${target}" "$source"
+				if [ -b "$source" ]
+				then
+					lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "${DOMAIN}_${target}" "$source"
+				else
+					log "WARNING: ignored non block device \`$source'"
+				fi
 			done
 	virsh resume "$DOMAIN"
 }
@@ -87,9 +92,12 @@ remove_snapshots() {
 	virsh_domblklist "$DOMAIN" \
                 | while read target source
                         do
-				blk_dev="$(dirname "$source")/${DOMAIN}_${target}"
-				log "remove LVM snapshot \`$blk_dev'"
- 				lvremove -f "$blk_dev"
+				if [ -b "$source" ]
+				then
+					blk_dev="$(dirname "$source")/${DOMAIN}_${target}"
+					log "remove LVM snapshot \`$blk_dev'"
+ 					lvremove -f "$blk_dev"
+				fi
 			done
 }
 
@@ -106,6 +114,7 @@ save_domdisks() {
 		| while read target source
 			do
 				blk_dev="$(dirname "$source")/${DOMAIN}_${target}"
+				[ -b "$blk_dev" ] || continue
 				sha_file="$OUTDIR/$target.sha"
 				blk_file="$OUTDIR/$target.raw.gz"
 				log "compress \`$blk_dev' -> \`${blk_file##*/}'"
