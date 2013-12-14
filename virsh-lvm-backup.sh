@@ -17,6 +17,12 @@
 set -e
 set -u
 
+# undocumented auto-update hack
+if [ "$1" = '-u' ]
+then
+	exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
+fi
+
 NAME="${0##*/}"
 USAGE="Backup QEMU/KVM domains
 
