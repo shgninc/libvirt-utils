@@ -84,38 +84,6 @@ create_output_dir() {
 	mkdir "$OUTDIR"
 }
 
-create_snapshots() {
-	local source= target=
-	log "$DOMAIN: create LVM snapshots"
-	virsh suspend "$DOMAIN"
-	virsh_domblklist "$DOMAIN" \
-		| while read target source
-			do
-				if [ -b "$source" ]
-				then
-					lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "${DOMAIN}_${target}" "$source"
-				else
-					log "WARNING: ignored non block device \`$source'"
-				fi
-			done
-	virsh resume "$DOMAIN"
-}
-
-remove_snapshots() {
-	local source= target= blk_dev=
-	virsh_domblklist "$DOMAIN" \
-                | while read target source
-                        do
-				if [ -b "$source" ]
-				then
-					blk_dev="$(dirname "$source")/${DOMAIN}_${target}"
-					log "remove LVM snapshot \`$blk_dev'"
- 					lvremove -f "$blk_dev"
-				fi
-			done
-}
-
-
 save_domxml() {
 	local xml_file="$OUTDIR/$DOMAIN.xml"
 	log "write domain definition \`${xml_file##*/}'"
@@ -133,27 +101,34 @@ save_blkdev() {
 }
 
 save_domdisks() {
-	local sha_file= blk_file= blk_dev= target= source=
+	local sha_file= out_file= snap_name= snap_dev= target= source=
 	virsh_domblklist "$DOMAIN" \
 		| while read target source
 			do
-				blk_dev="$(dirname "$source")/${DOMAIN}_${target}"
-				[ -b "$blk_dev" ] || continue
+				out_file="$OUTDIR/$target.raw.gz"
 				sha_file="$OUTDIR/$target.sha"
-				blk_file="$OUTDIR/$target.raw.gz"
-				log "compress \`$blk_dev' -> \`${blk_file##*/}'"
-				touch "$sha_file"
-				ionice -c 3 -t pv "$blk_dev" \
-					| nice -19 gzip -c \
-					| tee "$blk_file" \
-					| nice -19 shasum > "$sha_file"
-				log "write checksum file \`${sha_file##*/}'"
-				sed -i "s/-/$target.raw.gz/" "$sha_file"
+				if [ -b "$source" ]
+				then
+					snap_name="${DOMAIN}_${target}"
+					snap_dev="`dirname "$source"`/$snap_name"
+					virsh suspend "$DOMAIN"
+					lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap_name" "$source"
+					virsh resume "$DOMAIN"
+					save_blkdev "$snap_dev" "$out_file" "$sha_file"
+ 					lvremove -f "$blk_dev"
+				elif [ -f "$source" ]
+				then
+					virsh suspend "$DOMAIN"
+					save_blkdev "$source" "$out_file" "$sha_file"
+					virsh resume "$DOMAIN"
+				else
+					log "WARNING: skipped disk \`$source'"
+				fi
 			done
 }
 
+# TODO: restore multiple disks
 gen_restore_script() {
-	local blk_file= lvm_name= lvm_group= lvm_size=
 	local script="$OUTDIR/restore_$DOMAIN.sh"
 
 	log "generate shell script \`${script##*/}"
@@ -174,34 +149,40 @@ then
 	exit 2
 fi
 
-echo -n 'Restore domain $DOMAIN? [y/N] '
+pvscan
+echo -n 'Target Volume Group? '
+read VG
+
+lvs
+echo -n 'Target Logical Volume? '
+read LV
+
+echo -n 'Size? '
+read SZ
+
+echo -n 'Restore domain $DOMAIN to \$VG/\$LV with size \$SZ? [y/N] '
 read ANS
 if [ \"\$ANS\" != y ]
 then
 	echo 'Canceled by user.'
 	exit 3
 fi
-echo START
-"
-		echo 'cd "`dirname "$0"`"'
-		virsh_domblklist "$DOMAIN" \
-			| while read target source
-			do
-				blk_file="$target.raw.gz"
-				lvm_name=`basename "$source"`
-				lvm_group=`get_lvm_group "$source"`
-				lvm_size=`get_lvm_size "$source"`
-				echo "echo 'Verifying checksum file $blk_file...'
-ionice -c 3 shasum '$blk_file'
-echo 'Restoring virtual disk $target...'
-lvcreate -L'${lvm_size}b' -n '$lvm_name' '$lvm_group'
-nice -19 gzip -dc '$blk_file' | pv -s $lvm_size | ionice -c 3 dd of='$source'"
-			done
 
-		echo "echo 'Defining domain $DOMAIN'
+cd \"\`dirname \"\$0\"\`\"
+echo 'Verifying SHA checksums...'
+ionice -c 3 sha1sum -c *.sha
+
+for f in *.raw.gz
+do
+	echo \"Creating volume \$VG/\$LV with size \$SZ...\"
+	lvcreate -L\$SZ -n \$LV \$VG
+	nice -19 gzip -dc \"\$f\" | ionice -c 3 dd of=\"/dev/\$VG/\$LV\"
+	break
+done
+
+echo 'Defining domain $DOMAIN'
 virsh define $DOMAIN.xml
 virsh dominfo $DOMAIN
-echo DONE
 exit 0
 "
 	} > "$script"
