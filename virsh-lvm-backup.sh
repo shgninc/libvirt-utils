@@ -37,6 +37,14 @@ LVM_SNAPSHOT_SIZE='1G'
 DOMAIN=
 OUTDIR=
 
+nice() {
+	command nice -19 "$@"
+}
+
+ionice() {
+	command ionice -c 3 -t "$@"
+}
+
 # Print a message on STDERR and quit
 die() {
 	log "ERROR: $*" >&2
@@ -112,6 +120,16 @@ save_domxml() {
 	local xml_file="$OUTDIR/$DOMAIN.xml"
 	log "write domain definition \`${xml_file##*/}'"
 	virsh dumpxml --security-info "$DOMAIN" > "$xml_file"
+}
+
+save_blkdev() {
+	local src="${1?}" dst="${2?}" sha="${3?}"
+	log "save \`$src' -> \`${dst##*/}' + \`${sha##*/}'"
+	ionice pv "$src" \
+		| nice gzip -c \
+		| ionice tee "$dst" \
+		| nice shasum > "$sha"
+	sed -i "s|-|${dst##*/}|" "$sha"
 }
 
 save_domdisks() {
