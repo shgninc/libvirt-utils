@@ -207,11 +207,9 @@ do
 	virsh dominfo "$DOMAIN"
 
 	create_output_dir
-	create_snapshots
 	save_domxml
 	save_domdisks
 	gen_restore_script
-	remove_snapshots
 
 	ls -1sh "$OUTDIR"
 	log "$DOMAIN: FINISHED"
