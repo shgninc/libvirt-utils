@@ -109,7 +109,7 @@ save_domdisks() {
 					lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap_name" "$source"
 					virsh resume "$DOMAIN"
 					save_blkdev "$snap_dev" "$out_file" "$sha_file"
- 					lvremove -f "$blk_dev"
+ 					lvremove -f "$snap_dev"
 				elif [ -f "$source" ]
 				then
 					virsh suspend "$DOMAIN"
