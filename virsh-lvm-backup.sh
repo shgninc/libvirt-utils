@@ -17,12 +17,6 @@
 set -e
 set -u
 
-# undocumented auto-update hack
-if [ "$1" = '-u' ]
-then
-	exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
-fi
-
 NAME="${0##*/}"
 USAGE="Backup QEMU/KVM domains
 
@@ -195,6 +189,10 @@ if [ $# -eq 0 ]
 then
 	echo "$USAGE" >&2
 	exit 2
+elif [ "$1" = '-u' ]
+then
+	# undocumented auto-update hack
+	exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
 elif [ `id -u` -ne 0 ]
 then
 	die "need root permisions"
