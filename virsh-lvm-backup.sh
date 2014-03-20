@@ -92,6 +92,7 @@ save_domxml() {
 	virsh dumpxml --security-info "$dom" > "$dir/$dom.xml"
 }
 
+# Save the content of block device $1 to GZ file $2 and SHA file $3
 save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
 	log "save \`$src' -> \`${dst##*/}' + \`${sha##*/}'"
@@ -105,28 +106,27 @@ save_blkdev() {
 # Save block disks of domain $1 to directory $2
 save_domdisks() {
 	local dom="${1?}" dir="${2?}"
-	local sha_file= out_file= snap_name= snap_dev= target= source=
 	virsh_domblklist "$dom" \
-		| while read target source
+		| while read name path
 			do
-				out_file="$dir/$target.raw.gz"
-				sha_file="$dir/$target.sha"
-				if [ -b "$source" ]
+				out="$dir/$name.raw.gz"
+				sha="$dir/$name.sha"
+				if [ -b "$path" ]
 				then
-					snap_name="${dom}_${target}"
-					snap_dev="`dirname "$source"`/$snap_name"
+					snap="${dom}_${name}"
+					LVM_SNAPSHOT_DEV="`dirname "$path"`/$snap"
 					virsh suspend "$dom"
-					lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap_name" "$source"
+					lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$path"
 					virsh resume "$dom"
-					save_blkdev "$snap_dev" "$out_file" "$sha_file"
- 					lvremove -f "$snap_dev"
-				elif [ -f "$source" ]
+					save_blkdev "$LVM_SNAPSHOT_DEV" "$out" "$sha"
+ 					lvremove -f "$LVM_SNAPSHOT_DEV"
+				elif [ -f "$path" ]
 				then
-					virsh suspend "$DOMAIN"
-					save_blkdev "$source" "$out_file" "$sha_file"
-					virsh resume "$DOMAIN"
+					virsh suspend "$dom"
+					save_blkdev "$path" "$out" "$sha"
+					virsh resume "$dom"
 				else
-					log "WARNING: skipped disk \`$source'"
+					log "WARNING: skipped disk \`$path'"
 				fi
 			done
 }
