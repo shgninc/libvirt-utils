@@ -49,7 +49,7 @@ Options:
 
 # Log a message on STDOUT
 log() {
-	echo "`date '+%F %T'` $*"
+	echo "$NAME: $*"
 }
 
 # Print a message on STDERR and quit
@@ -100,12 +100,14 @@ save_domxml() {
 # Save the content of block device $1 to GZ file $2 and SHA file $3
 save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
-	log "save \`$src' -> \`${dst##*/}' + \`${sha##*/}'"
+	log "save block device \`$src'"
 	ionice pv --rate-limit "$RATE_LIMIT" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
+	log "wrote compressed file \`$dst'"
 	sed -i "s|-|${dst##*/}|" "$sha"
+	log "wrote checksum file \`$sha'"
 }
 
 # Save block disks of domain $1 to directory $2
@@ -277,7 +279,7 @@ do
 	domname=`virsh domname "$1"` \
 		|| die "domain \`$1' not found"	
 
-	log "started backup of domain \`$domname'"
+	log "`date`: started backup of domain \`$domname'"
 	virsh dominfo "$domname"
 
 	BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
@@ -291,7 +293,7 @@ do
 	ls -1sh -- "$BACKUP_DIR"
 	BACKUP_DIR=
 	LVM_SNAPSHOT_DEV=
-	log "finished backup of domain \`$domname'"
+	log "`date`: finished backup of domain \`$domname'"
 
 	shift
 done
