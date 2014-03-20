@@ -32,11 +32,14 @@ Options:
   -V, --version  Print script version and exit
 
 "
+readonly HOSTNAME="${HOSTNAME:-"`uname -n`"}"
 
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 LVM_SNAPSHOT_SIZE='1G'
-LVM_SNAPSHOT=
-OUTPUT_DIR=
+OUTPUT_DIR="$PWD"
+LVM_SNAPSHOT_DEV=
+BACKUP_DIR=
+
 
 
 # Log a message on STDOUT
@@ -62,7 +65,7 @@ ionice() {
 	command ionice -c 3 -t "$@"
 }
 
-# List block devices for $1
+# List block devices for domain $1
 virsh_domblklist() {
 	# virsh --quiet still prints headers
 	virsh domblklist "${1?}" \
@@ -82,11 +85,11 @@ get_lvm_group() {
 }
 
 
-# Save XML configuration of domain $1 to directory $OUTPUT_DIR
+# Save XML configuration of domain $1 to directory $2
 save_domxml() {
-	local dom="${1?}"
+	local dom="${1?}" dir="${2?}"
 	log "save domain XML configuration"
-	virsh dumpxml --security-info "$dom" > "$OUTPUT_DIR/$dom.xml"
+	virsh dumpxml --security-info "$dom" > "$dir/$dom.xml"
 }
 
 save_blkdev() {
@@ -99,20 +102,22 @@ save_blkdev() {
 	sed -i "s|-|${dst##*/}|" "$sha"
 }
 
+# Save block disks of domain $1 to directory $2
 save_domdisks() {
+	local dom="${1?}" dir="${2?}"
 	local sha_file= out_file= snap_name= snap_dev= target= source=
-	virsh_domblklist "$DOMAIN" \
+	virsh_domblklist "$dom" \
 		| while read target source
 			do
-				out_file="$OUTDIR/$target.raw.gz"
-				sha_file="$OUTDIR/$target.sha"
+				out_file="$dir/$target.raw.gz"
+				sha_file="$dir/$target.sha"
 				if [ -b "$source" ]
 				then
-					snap_name="${DOMAIN}_${target}"
+					snap_name="${dom}_${target}"
 					snap_dev="`dirname "$source"`/$snap_name"
-					virsh suspend "$DOMAIN"
+					virsh suspend "$dom"
 					lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap_name" "$source"
-					virsh resume "$DOMAIN"
+					virsh resume "$dom"
 					save_blkdev "$snap_dev" "$out_file" "$sha_file"
  					lvremove -f "$snap_dev"
 				elif [ -f "$source" ]
@@ -189,6 +194,22 @@ exit 0
 }
 
 
+# Interactive removal of $BACKUP_DIR and $LVM_SNAPSHOT_DEV
+exit_handler() {
+	log "interrupted"
+	if [ -d "$BACKUP_DIR" ]
+	then
+		rm -I -- "$BACKUP_DIR"
+	fi
+	if [ -b "$LVM_SNAPSHOT_DEV" ]
+	then
+		lvremove "$LVM_SNAPSHOT_DEV"
+	fi
+}
+
+
+
+
 
 if [ $# -eq 0 ]
 then
@@ -224,42 +245,28 @@ do
 	shift
 done
 
-exit_handler() {
-	log "interrupted"
-	if [ -d "$OUTPUT_DIR" ]
-	then
-		rm -I -- "$OUTPUT_DIR"
-	fi
-	if [ -n "$LVM_SNAPSHOT" ]
-	then
-		lvremove "$LVM_SNAPSHOT"
-	fi
-}
 trap exit_handler EXIT
 
 while [ $# -gt 0 ]
 do
-	name=`virsh domname "$1"` \
-	  || die "domain \`$1' not found"	
+	domname=`virsh domname "$1"` \
+		|| die "domain \`$1' not found"	
 
-	DOMAIN="$1"
-	OUTDIR=
+	log "$domname: STARTED"
+	virsh dominfo "$domname"
 
-	log "$DOMAIN: STARTED"
-	virsh dominfo "$name"
+	BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
+	mkdir -v "$BACKUP_DIR" \
+		|| die "can't create backup directory \`$BACKUP_DIR'"
 
-	OUTDIR="$(date -u '+%F.%H%M%S').$NAME.$(hostname).$DOMAIN"
-	log "create backup directory \`$OUTDIR'"
-	mkdir "$OUTDIR"
-	save_domxml
-	save_domdisks
-	gen_restore_script
+	save_domxml "$domname" "$BACKUP_DIR"
+	save_domdisks "$domname" "$BACKUP_DIR"
+	#gen_restore_script "$domname" "$BACKUP_DIR"
 
-	ls -1sh "$OUTDIR"
-	log "$DOMAIN: FINISHED"
-	
-	OUTPUT_DIR=
-	LVM_SNAPSHOT=
+	ls -1sh -- "$BACKUP_DIR"
+	BACKUP_DIR=
+	LVM_SNAPSHOT_DEV=
+	log "$domname: FINISHED"
 
 	shift
 done
