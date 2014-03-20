@@ -25,6 +25,8 @@ Usage:
   $NAME [OPTIONS] [--] DOMAIN...
 
 Options:
+  -d, --directory DIR
+                 Write backups in directory DIR (default is \".\")
   -l, --list     List all defined domains
   -u, --update   Auto-update the script to the latest version
 
@@ -222,28 +224,37 @@ do
 	case "$1" in
 	-h|--help)
 		exec echo "$USAGE"
-	;;
+		;;
 	-V|--version)
 		exec echo "$NAME version $VERSION"
-	;;
+		;;
+	-d|--directory)
+		shift
+		OUTPUT_DIR="$2"
+		;;
 	-l|--list)
-		exec virsh --quiet list --all
-	;;
+		exec virsh list --all
+		;;
 	-u|--update)
 		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
-	;;
+		;;
 	--)
 		break
-	;;
+		;;
 	-*)
 		die "unknown option \`$1'"
-	;;
+		;;
 	*)
 		break
-	;;
+		;;
 	esac
 	shift
 done
+
+if [ ! -d "$OUTPUT_DIR" ]
+then
+	die "output directory \`$OUTPUT_DIR' not found"
+fi
 
 trap exit_handler EXIT
 
