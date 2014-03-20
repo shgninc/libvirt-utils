@@ -19,6 +19,13 @@ set -u
 
 readonly NAME="${0##*/}"
 readonly VERSION="@VERSION@"
+readonly HOSTNAME="${HOSTNAME:-"`uname -n`"}"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+LVM_SNAPSHOT_SIZE='1G'
+OUTPUT_DIR="$PWD"
+LVM_SNAPSHOT_DEV=
+BACKUP_DIR=
+RATE_LIMIT="5m"
 readonly USAGE="Backup QEMU/KVM domains
 
 Usage:
@@ -28,19 +35,15 @@ Options:
   -d, --directory DIR
                  Write backups in directory DIR (default is \".\")
   -l, --list     List all defined domains
+  -L, --limit RATE
+                 Limit the IO transfer to a maximum of RATE bytes per second.
+                 A suffix of \"k\", \"m\", \"g\", or \"t\" can be added to denote
+                 kilobytes (*1024), megabytes, and so on. (default is $RATE_LIMIT)
   -u, --update   Auto-update the script to the latest version
 
   -h, --help     Print this help message and exit
   -V, --version  Print script version and exit
-
 "
-readonly HOSTNAME="${HOSTNAME:-"`uname -n`"}"
-
-PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-LVM_SNAPSHOT_SIZE='1G'
-OUTPUT_DIR="$PWD"
-LVM_SNAPSHOT_DEV=
-BACKUP_DIR=
 
 
 
@@ -98,7 +101,7 @@ save_domxml() {
 save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
 	log "save \`$src' -> \`${dst##*/}' + \`${sha##*/}'"
-	ionice pv "$src" \
+	ionice pv --rate-limit "$RATE_LIMIT" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
@@ -235,6 +238,10 @@ do
 	-l|--list)
 		exec virsh list --all
 		;;
+	-L|--limit)
+		shift
+		RATE_LIMIT="$2"
+		;;
 	-u|--update)
 		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
 		;;
@@ -257,6 +264,9 @@ then
 elif [ ! -d "$OUTPUT_DIR" ]
 then
 	die "output directory \`$OUTPUT_DIR' not found"
+elif echo "$RATE_LIMIT" | grep -vqE '^[0-9]+[kmgt]?$'
+then
+	die "invalid rate \`$RATE_LIMIT'"
 fi
 
 trap exit_handler EXIT
