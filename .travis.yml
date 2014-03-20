@@ -1,4 +1,2 @@
 language: c
-before_install:
-    - sudo apt-get -y install make
 script: make 
