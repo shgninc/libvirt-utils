@@ -206,7 +206,7 @@ exit_handler() {
 	log "interrupted"
 	if [ -d "$BACKUP_DIR" ]
 	then
-		rm -I -- "$BACKUP_DIR"
+		rm -rI -- "$BACKUP_DIR"
 	fi
 	if [ -b "$LVM_SNAPSHOT_DEV" ]
 	then
