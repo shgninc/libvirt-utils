@@ -33,6 +33,8 @@ Options:
   -V, --version  Print script version and exit
 
 "
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 
 LVM_SNAPSHOT_SIZE='1G'
 DOMAIN=
