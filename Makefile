@@ -5,7 +5,7 @@ SHELL = /bin/sh
 DESTDIR =
 BINDIR = /usr/local/bin
 
-VERSION = '2014-03-20'
+VERSION = $(shell date +%F)
 
 SH_FILES = $(wildcard *.sh)
 SCRIPTS = $(SH_FILES:.sh=)
