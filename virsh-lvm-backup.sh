@@ -251,7 +251,10 @@ do
 	shift
 done
 
-if [ ! -d "$OUTPUT_DIR" ]
+if [ `id -u` -ne 0 ]
+then
+	die "need root permission"
+elif [ ! -d "$OUTPUT_DIR" ]
 then
 	die "output directory \`$OUTPUT_DIR' not found"
 fi
