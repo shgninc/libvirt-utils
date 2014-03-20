@@ -25,7 +25,6 @@ Usage:
   $NAME [OPTIONS] [--] DOMAIN...
 
 Options:
-
   -l, --list     List all defined domains
   -u, --update   Auto-update the script to the latest version
 
@@ -70,26 +69,24 @@ virsh_domblklist() {
 		| awk 'NR == 1 && $1 == "Target" && $2 == "Source" { getline; getline; } { print }'
 }
 
+# Print size in bytes for logical volume $1
 get_lvm_size() {
 	lvs --nosuffix --units b --noheadings "${1?}" \
 		| awk '{ print $4 }'
 }
 
+# Print volume group name of logical volume $1
 get_lvm_group() {
 	lvs --nosuffix --units b --noheadings "${1?}" \
 		| awk '{ print $2 }'
 }
 
-create_output_dir() {
-	OUTDIR="$(date -u '+%F.%H%M%S').$NAME.$(hostname).$DOMAIN"
-	log "create backup directory \`$OUTDIR'"
-	mkdir "$OUTDIR"
-}
 
+# Save XML configuration of domain $1 to directory $OUTPUT_DIR
 save_domxml() {
-	local xml_file="$OUTDIR/$DOMAIN.xml"
-	log "write domain definition \`${xml_file##*/}'"
-	virsh dumpxml --security-info "$DOMAIN" > "$xml_file"
+	local dom="${1?}"
+	log "save domain XML configuration"
+	virsh dumpxml --security-info "$dom" > "$OUTPUT_DIR/$dom.xml"
 }
 
 save_blkdev() {
@@ -250,7 +247,10 @@ do
 
 	log "$DOMAIN: STARTED"
 	virsh dominfo "$name"
-	create_output_dir
+
+	OUTDIR="$(date -u '+%F.%H%M%S').$NAME.$(hostname).$DOMAIN"
+	log "create backup directory \`$OUTDIR'"
+	mkdir "$OUTDIR"
 	save_domxml
 	save_domdisks
 	gen_restore_script
