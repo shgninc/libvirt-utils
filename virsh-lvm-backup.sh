@@ -25,6 +25,7 @@ Usage:
 
 Options:
 
+  -h, --help     Print this help message and exit
   -u, --update   Auto-update the script to the latest version
 
 Domains:
@@ -198,6 +199,10 @@ fi
 while [ $# -gt 0 ]
 do
 	case "$1" in
+	-h|--help)
+		echo "$USAGE"
+		exit 0
+	;;
 	-u|--update)
 		log "download the latest version of \`$NAME'..."
 		wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
