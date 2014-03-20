@@ -21,7 +21,11 @@ NAME="${0##*/}"
 USAGE="Backup QEMU/KVM domains
 
 Usage:
-  $NAME <domain>...
+  $NAME [OPTIONS] [--] DOMAIN...
+
+Options:
+
+  -u, --update   Auto-update the script to the latest version
 
 Domains:
 `virsh --quiet list --all`
@@ -189,14 +193,29 @@ if [ $# -eq 0 ]
 then
 	echo "$USAGE" >&2
 	exit 2
-elif [ "$1" = '-u' ]
-then
-	# undocumented auto-update hack
-	exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
-elif [ `id -u` -ne 0 ]
-then
-	die "need root permisions"
 fi
+
+while [ $# -gt 0 ]
+do
+	case "$1" in
+	-u|--update)
+		log "download the latest version of \`$NAME'..."
+		wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
+		log "done"
+		exit 0
+	;;
+	--)
+		break
+	;;
+	-*)
+		die "unknown option \`$1'"
+	;;
+	*)
+		break
+	;;
+	esac
+	shift
+done
 
 while [ $# -gt 0 ]
 do
