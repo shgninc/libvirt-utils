@@ -44,7 +44,7 @@ BACKUP_DIR=
 
 # Log a message on STDOUT
 log() {
-	echo "`date '+[%F %T]'` $NAME: $*"
+	echo "`date '+%F %T'` $*"
 }
 
 # Print a message on STDERR and quit
@@ -252,7 +252,7 @@ do
 	domname=`virsh domname "$1"` \
 		|| die "domain \`$1' not found"	
 
-	log "$domname: STARTED"
+	log "started backup of domain \`$domname'"
 	virsh dominfo "$domname"
 
 	BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
@@ -266,7 +266,7 @@ do
 	ls -1sh -- "$BACKUP_DIR"
 	BACKUP_DIR=
 	LVM_SNAPSHOT_DEV=
-	log "$domname: FINISHED"
+	log "finished backup of domain \`$domname'"
 
 	shift
 done
