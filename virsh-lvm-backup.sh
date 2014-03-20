@@ -36,7 +36,14 @@ Options:
 
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 LVM_SNAPSHOT_SIZE='1G'
+LVM_SNAPSHOT=
+OUTPUT_DIR=
 
+
+# Log a message on STDOUT
+log() {
+	echo "`date '+[%F %T]'` $NAME: $*"
+}
 
 # Print a message on STDERR and quit
 die() {
@@ -44,10 +51,6 @@ die() {
 	exit 1
 }
 
-# Log a message on STDOUT
-log() {
-	echo "`date '+[%F %T]'` $NAME: $*"
-}
 
 # Command wrappers
 virsh() {
@@ -224,6 +227,19 @@ do
 	shift
 done
 
+exit_handler() {
+	log "interrupted"
+	if [ -d "$OUTPUT_DIR" ]
+	then
+		rm -I -- "$OUTPUT_DIR"
+	fi
+	if [ -n "$LVM_SNAPSHOT" ]
+	then
+		lvremove "$LVM_SNAPSHOT"
+	fi
+}
+trap exit_handler EXIT
+
 while [ $# -gt 0 ]
 do
 	name=`virsh domname "$1"` \
@@ -242,8 +258,12 @@ do
 	ls -1sh "$OUTDIR"
 	log "$DOMAIN: FINISHED"
 	
+	OUTPUT_DIR=
+	LVM_SNAPSHOT=
+
 	shift
 done
+
 
 exit 0
 
