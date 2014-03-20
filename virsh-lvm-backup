@@ -18,7 +18,7 @@ set -e
 set -u
 
 readonly NAME="${0##*/}"
-readonly VERSION="@VERSION@"
+readonly VERSION="2014-03-20"
 readonly HOSTNAME="${HOSTNAME:-"`uname -n`"}"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 LVM_SNAPSHOT_SIZE='1G'
@@ -245,7 +245,7 @@ do
 		shift
 		;;
 	-u|--update)
-		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup
+		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
 		;;
 	--)
 		shift
