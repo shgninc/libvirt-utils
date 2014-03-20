@@ -17,16 +17,19 @@
 set -e
 set -u
 
-NAME="${0##*/}"
-USAGE="Backup QEMU/KVM domains
+readonly NAME="${0##*/}"
+readonly VERSION="@VERSION@"
+readonly USAGE="Backup QEMU/KVM domains
 
 Usage:
   $NAME [OPTIONS] [--] DOMAIN...
 
 Options:
 
-  -h, --help     Print this help message and exit
   -u, --update   Auto-update the script to the latest version
+
+  -h, --help     Print this help message and exit
+  -V, --version  Print script version and exit
 
 Domains:
 `virsh --quiet list --all`
@@ -201,6 +204,10 @@ do
 	case "$1" in
 	-h|--help)
 		echo "$USAGE"
+		exit 0
+	;;
+	-V|--version)
+		echo "$NAME version $VERSION"
 		exit 0
 	;;
 	-u|--update)
