@@ -245,7 +245,7 @@ do
 		shift
 		;;
 	-u|--update)
-		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
+		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup
 		;;
 	--)
 		shift
