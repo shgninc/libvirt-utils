@@ -26,13 +26,12 @@ Usage:
 
 Options:
 
+  -l, --list     List all defined domains
   -u, --update   Auto-update the script to the latest version
 
   -h, --help     Print this help message and exit
   -V, --version  Print script version and exit
 
-Domains:
-`virsh --quiet list --all`
 "
 
 LVM_SNAPSHOT_SIZE='1G'
@@ -203,18 +202,16 @@ while [ $# -gt 0 ]
 do
 	case "$1" in
 	-h|--help)
-		echo "$USAGE"
-		exit 0
+		exec echo "$USAGE"
 	;;
 	-V|--version)
-		echo "$NAME version $VERSION"
-		exit 0
+		exec echo "$NAME version $VERSION"
+	;;
+	-l|--list)
+		exec virsh --quiet list --all
 	;;
 	-u|--update)
-		log "download the latest version of \`$NAME'..."
-		wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
-		log "done"
-		exit 0
+		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
 	;;
 	--)
 		break
