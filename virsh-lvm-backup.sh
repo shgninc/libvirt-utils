@@ -232,15 +232,15 @@ do
 		exec echo "$NAME version $VERSION"
 		;;
 	-d|--directory)
-		shift
 		OUTPUT_DIR="$2"
+		shift
 		;;
 	-l|--list)
 		exec virsh list --all
 		;;
 	-L|--limit)
-		shift
 		RATE_LIMIT="$2"
+		shift
 		;;
 	-u|--update)
 		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
