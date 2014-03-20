@@ -33,20 +33,10 @@ Options:
   -V, --version  Print script version and exit
 
 "
+
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-
-
 LVM_SNAPSHOT_SIZE='1G'
-DOMAIN=
-OUTDIR=
 
-nice() {
-	command nice -19 "$@"
-}
-
-ionice() {
-	command ionice -c 3 -t "$@"
-}
 
 # Print a message on STDERR and quit
 die() {
@@ -59,9 +49,15 @@ log() {
 	echo "`date '+[%F %T]'` $NAME: $*"
 }
 
-# Run virsh with default options
+# Command wrappers
 virsh() {
 	command virsh --quiet "$@"
+}
+nice() {
+	command nice -19 "$@"
+}
+ionice() {
+	command ionice -c 3 -t "$@"
 }
 
 # List block devices for $1
@@ -230,12 +226,14 @@ done
 
 while [ $# -gt 0 ]
 do
+	name=`virsh domname "$1"` \
+	  || die "domain \`$1' not found"	
+
 	DOMAIN="$1"
 	OUTDIR=
 
 	log "$DOMAIN: STARTED"
-	virsh dominfo "$DOMAIN"
-
+	virsh dominfo "$name"
 	create_output_dir
 	save_domxml
 	save_domdisks
@@ -243,7 +241,7 @@ do
 
 	ls -1sh "$OUTDIR"
 	log "$DOMAIN: FINISHED"
-
+	
 	shift
 done
 
