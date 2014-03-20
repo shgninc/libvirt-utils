@@ -246,6 +246,7 @@ do
 		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup.sh
 		;;
 	--)
+		shift
 		break
 		;;
 	-*)
