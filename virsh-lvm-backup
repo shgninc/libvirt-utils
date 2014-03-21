@@ -49,9 +49,14 @@ Options:
 
 # Log a message on STDOUT
 log() {
-	echo "$NAME: $*"
+	echo "[`date -u '+%F %T'`] $NAME: $*"
 }
-
+info() {
+	log "INFO: $*"
+}
+warn() {
+	log "WARNING: $*" >&2
+}
 # Print a message on STDERR and quit
 die() {
 	log "ERROR: $*" >&2
@@ -93,21 +98,21 @@ get_lvm_group() {
 # Save XML configuration of domain $1 to directory $2
 save_domxml() {
 	local dom="${1?}" dir="${2?}"
-	log "save domain XML configuration"
+	info "save domain XML configuration"
 	virsh dumpxml --security-info "$dom" > "$dir/$dom.xml"
 }
 
 # Save the content of block device $1 to GZ file $2 and SHA file $3
 save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
-	log "save block device \`$src'"
+	info "saving block device \`$src'..."
 	ionice pv --rate-limit "$RATE_LIMIT" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
-	log "wrote compressed file \`$dst'"
+	info "wrote compressed file \`$dst'"
 	sed -i "s|-|${dst##*/}|" "$sha"
-	log "wrote checksum file \`$sha'"
+	info "wrote checksum file \`$sha'"
 }
 
 # Save block disks of domain $1 to directory $2
@@ -134,7 +139,7 @@ save_domdisks() {
 					save_blkdev "$path" "$out" "$sha"
 					virsh resume "$dom"
 				else
-					log "WARNING: skipped disk \`$path'"
+					warn "skipped disk \`$path'"
 				fi
 			done
 }
@@ -206,10 +211,12 @@ exit 0
 cleanup() {
 	if [ -d "$BACKUP_DIR" ]
 	then
+		info "remove partial backup \`$BACKUP_DIR'"
 		rm -vfr -- "$BACKUP_DIR"
 	fi
 	if [ -b "$LVM_SNAPSHOT_DEV" ]
 	then
+		info "remove snapshot partition \`$LVM_SNAPSHOT_DEV'"
 		lvremove -f "$LVM_SNAPSHOT_DEV"
 	fi
 }
@@ -273,13 +280,13 @@ then
 fi
 
 trap '
-	log "ERROR: $NAME was interrupted"
 	cleanup
+	die "interrupted"
 ' TERM KILL QUIT INT HUP
 
-log "INFO: start"
+info "start"
 trap '
-	log "INFO: terminate"
+	info "terminate"
 ' EXIT
 
 while [ $# -gt 0 ]
@@ -287,7 +294,7 @@ do
 	domname=`virsh domname "$1"` \
 		|| die "domain \`$1' not found"	
 
-	log "`date`: backup domain \`$domname'"
+	info "backup domain \`$domname'"
 	virsh dominfo "$domname"
 
 	BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
@@ -298,12 +305,11 @@ do
 	save_domdisks "$domname" "$BACKUP_DIR"
 	#gen_restore_script "$domname" "$BACKUP_DIR"
 
-	log "`date`: wrote \`$BACKUP_DIR' (`du -sh "$BACKUP_DIR" | cut -f 1`)"
+	info "wrote backup \`$BACKUP_DIR' (`du -sh "$BACKUP_DIR" | cut -f 1`)"
 	BACKUP_DIR=
 
 	shift
 done
-
 
 exit 0
 
