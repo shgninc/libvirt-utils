@@ -75,6 +75,21 @@ ionice() {
 	command ionice -c 3 -t "$@"
 }
 
+# Remove $BACKUP_DIR and $LVM_SNAPSHOT_DEV if they exist
+cleanup() {
+	if [ -d "$BACKUP_DIR" ]
+	then
+		info "remove partial backup \`$BACKUP_DIR'"
+		rm -vfr -- "$BACKUP_DIR"
+	fi
+	if [ -b "$LVM_SNAPSHOT_DEV" ]
+	then
+		info "remove snapshot partition \`$LVM_SNAPSHOT_DEV'"
+		lvremove -f "$LVM_SNAPSHOT_DEV"
+	fi
+}
+
+
 # List block devices for domain $1
 virsh_domblklist() {
 	# virsh --quiet still prints headers
@@ -121,6 +136,7 @@ save_domdisks() {
 	virsh_domblklist "$dom" \
 		| while read name path
 			do
+				# TODO: rewrite so that trap and LVM_SNAPSHOT_DEV are in the same scope
 				out="$dir/$name.raw.gz"
 				sha="$dir/$name.sha"
 				if [ -b "$path" ]
@@ -204,21 +220,6 @@ exit 0
 "
 	} > "$script"
 	chmod 0755 "$script"
-}
-
-
-# Remove $BACKUP_DIR and $LVM_SNAPSHOT_DEV if they exist
-cleanup() {
-	if [ -d "$BACKUP_DIR" ]
-	then
-		info "remove partial backup \`$BACKUP_DIR'"
-		rm -vfr -- "$BACKUP_DIR"
-	fi
-	if [ -b "$LVM_SNAPSHOT_DEV" ]
-	then
-		info "remove snapshot partition \`$LVM_SNAPSHOT_DEV'"
-		lvremove -f "$LVM_SNAPSHOT_DEV"
-	fi
 }
 
 
