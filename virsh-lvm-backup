@@ -90,11 +90,18 @@ cleanup() {
 }
 
 
-# List block devices for domain $1
+# List block devices for domain $1 in format <target>:<source>
+# (e.g. vda:/dev/vg1/lv1)
 virsh_domblklist() {
 	# virsh --quiet still prints headers
 	virsh domblklist "${1?}" \
-		| awk 'NR == 1 && $1 == "Target" && $2 == "Source" { getline; getline; } { print }'
+		| awk 'NR == 1 && $1 == "Target" && $2 == "Source" {
+				getline
+				getline
+			}
+			$1 && $2 {
+				print $1 ":" $2
+			}'
 }
 
 # Print size in bytes for logical volume $1
@@ -132,32 +139,32 @@ save_blkdev() {
 
 # Save block disks of domain $1 to directory $2
 save_domdisks() {
-	local dom="${1?}" dir="${2?}"
-	virsh_domblklist "$dom" \
-		| while read name path
-			do
-				# TODO: rewrite so that trap and LVM_SNAPSHOT_DEV are in the same scope
-				out="$dir/$name.raw.gz"
-				sha="$dir/$name.sha"
-				if [ -b "$path" ]
-				then
-					snap="${dom}_${name}"
-					LVM_SNAPSHOT_DEV="`dirname "$path"`/$snap"
-					virsh suspend "$dom"
-					lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$path"
-					virsh resume "$dom"
-					save_blkdev "$LVM_SNAPSHOT_DEV" "$out" "$sha"
- 					lvremove -f "$LVM_SNAPSHOT_DEV"
-					LVM_SNAPSHOT_DEV=
-				elif [ -f "$path" ]
-				then
-					virsh suspend "$dom"
-					save_blkdev "$path" "$out" "$sha"
-					virsh resume "$dom"
-				else
-					warn "skipped disk \`$path'"
-				fi
-			done
+	local dom="${1?}" dir="${2?}" s= src= dsk= out= sha= snap=
+	for s in `virsh_domblklist "$dom"`
+	do
+		src="${s%%:*}"
+		dsk="${s#*:}"
+		out="$dir/$dsk.raw.gz"
+		sha="$dir/$dsk.sha"
+		if [ -b "$src" ]
+		then
+			snap="${dom}_${dsk}"
+			LVM_SNAPSHOT_DEV="`dirname "$src"`/$snap"
+			virsh suspend "$dom"
+			lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$src"
+			virsh resume "$dom"
+			save_blkdev "$LVM_SNAPSHOT_DEV" "$out" "$sha"
+			lvremove -f "$LVM_SNAPSHOT_DEV"
+			LVM_SNAPSHOT_DEV=
+		elif [ -f "$src" ]
+		then
+			virsh suspend "$dom"
+			save_blkdev "$src" "$out" "$sha"
+			virsh resume "$dom"
+		else
+			warn "skipped block device \`$s'"
+		fi
+	done
 }
 
 # TODO: restore multiple disks
