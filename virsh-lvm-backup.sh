@@ -127,6 +127,7 @@ save_domdisks() {
 					virsh resume "$dom"
 					save_blkdev "$LVM_SNAPSHOT_DEV" "$out" "$sha"
  					lvremove -f "$LVM_SNAPSHOT_DEV"
+					LVM_SNAPSHOT_DEV=
 				elif [ -f "$path" ]
 				then
 					virsh suspend "$dom"
@@ -201,16 +202,15 @@ exit 0
 }
 
 
-# Interactive removal of $BACKUP_DIR and $LVM_SNAPSHOT_DEV
-exit_handler() {
-	log "interrupted"
+# Remove $BACKUP_DIR and $LVM_SNAPSHOT_DEV if they exist
+cleanup() {
 	if [ -d "$BACKUP_DIR" ]
 	then
-		rm -rI -- "$BACKUP_DIR"
+		rm -vfr -- "$BACKUP_DIR"
 	fi
 	if [ -b "$LVM_SNAPSHOT_DEV" ]
 	then
-		lvremove "$LVM_SNAPSHOT_DEV"
+		lvremove -f "$LVM_SNAPSHOT_DEV"
 	fi
 }
 
@@ -272,14 +272,22 @@ then
 	die "invalid rate \`$RATE_LIMIT'"
 fi
 
-trap exit_handler EXIT
+trap '
+	log "ERROR: $NAME was interrupted"
+	cleanup
+' TERM KILL QUIT INT HUP
+
+log "INFO: start"
+trap '
+	log "INFO: terminate"
+' EXIT
 
 while [ $# -gt 0 ]
 do
 	domname=`virsh domname "$1"` \
 		|| die "domain \`$1' not found"	
 
-	log "`date`: started backup of domain \`$domname'"
+	log "`date`: backup domain \`$domname'"
 	virsh dominfo "$domname"
 
 	BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
@@ -290,10 +298,8 @@ do
 	save_domdisks "$domname" "$BACKUP_DIR"
 	#gen_restore_script "$domname" "$BACKUP_DIR"
 
-	ls -1sh -- "$BACKUP_DIR"
+	log "`date`: wrote \`$BACKUP_DIR' (`du -sh "$BACKUP_DIR" | cut -f 1`)"
 	BACKUP_DIR=
-	LVM_SNAPSHOT_DEV=
-	log "`date`: finished backup of domain \`$domname'"
 
 	shift
 done
