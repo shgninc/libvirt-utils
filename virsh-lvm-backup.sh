@@ -26,7 +26,7 @@ OUTPUT_DIR="$PWD"
 LVM_SNAPSHOT_DEV=
 BACKUP_DIR=
 RATE_LIMIT="5m"
-readonly USAGE="Backup QEMU/KVM domains
+readonly USAGE="Backup virsh guest domains
 
 Usage:
   $NAME [OPTIONS] [--] DOMAIN...
