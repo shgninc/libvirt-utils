@@ -1,7 +1,6 @@
-virsh-tools
-===========
+# libvirt-utils
 
-Shell scripts to use with virsh
+Utilities for managing [virsh][virsh] guest domains
 
 ## Usage
 
@@ -29,4 +28,7 @@ Shell scripts to use with virsh
 ## License
 
 [Apache 2.0](http://opensource.org/licenses/Apache-2.0)
+
+
+[virsh]: http://libvirt.org/sources/virshcmdref/html-single/
 
