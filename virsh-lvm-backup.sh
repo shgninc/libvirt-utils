@@ -39,7 +39,6 @@ Options:
                  Limit the IO transfer to a maximum of RATE bytes per second.
                  A suffix of \"k\", \"m\", \"g\", or \"t\" can be added to denote
                  kilobytes (*1024), megabytes, and so on. (default is $RATE_LIMIT)
-  -u, --update   Auto-update the script to the latest version
 
   -h, --help     Print this help message and exit
   -V, --version  Print script version and exit
@@ -258,9 +257,6 @@ do
 	-L|--limit)
 		RATE_LIMIT="$2"
 		shift
-		;;
-	-u|--update)
-		exec wget -O "$0" https://raw.github.com/swaeku/virsh-tools/master/virsh-lvm-backup
 		;;
 	--)
 		shift
