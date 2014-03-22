@@ -25,6 +25,10 @@ Utilities for managing [virsh][virsh] guest domains
 	  -V, --version  Print script version and exit
 	
 
+## See Also
+
+- [libvirt virtualization API](http://libvirt.org/index.html)
+
 ## License
 
 [Apache 2.0](http://opensource.org/licenses/Apache-2.0)
