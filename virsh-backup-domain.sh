@@ -281,6 +281,11 @@ then
 elif echo "$RATE_LIMIT" | grep -vqE '^[0-9]+[kmgt]?$'
 then
 	die "invalid rate \`$RATE_LIMIT'"
+elif ! which virsh >/dev/null 2>&1
+then
+	die "command \`virsh' not found"
+else
+	info "virsh version `virsh --version`"
 fi
 
 trap '
