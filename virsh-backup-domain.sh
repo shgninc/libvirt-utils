@@ -173,8 +173,8 @@ save_domdisks() {
 	local dom="${1?}" dir="${2?}" s= src= dsk= out= sha= snap=
 	for s in `virsh_domblklist "$dom"`
 	do
-		src="`echo "$s" | sed -e 's|:.*||'`"
-		dsk="`echo "$s" | sed -e 's|.*:||'`"
+		src="`echo "$s" | sed -e 's|.*:||'`"
+		dsk="`echo "$s" | sed -e 's|:.*||'`"
 		out="$dir/$dsk.raw.gz"
 		sha="$dir/$dsk.sha"
 		if [ -b "$src" ]
