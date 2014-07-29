@@ -181,13 +181,15 @@ save_domdisks() {
 		then
 			snap="${dom}_${dsk}"
 			LVM_SNAPSHOT_DEV="`dirname "$src"`/$snap"
-			run_dompaused lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$src"
+			run_dompaused "$dom" \
+				lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$src"
 			save_blkdev "$LVM_SNAPSHOT_DEV" "$out" "$sha"
 			lvremove -f "$LVM_SNAPSHOT_DEV"
 			LVM_SNAPSHOT_DEV=
 		elif [ -f "$src" ]
 		then
-			run_dompaused save_blkdev "$src" "$out" "$sha"
+			run_dompaused "$dom" \
+				save_blkdev "$src" "$out" "$sha"
 		else
 			warn "skipped block device \`$s'"
 		fi
