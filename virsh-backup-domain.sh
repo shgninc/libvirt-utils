@@ -165,7 +165,7 @@ save_blkdev() {
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
-	info "wrote compressed file \`$dst'"
+	info "wrote archive file \`$dst'"
 	sed -i "s|-|${file}|" "$sha"
 	info "wrote checksum file \`$sha'"
 }
