@@ -27,6 +27,7 @@ LVM_SNAPSHOT_DEV=
 BACKUP_DIR=
 RATE_LIMIT="5m"
 PAUSE_METHOD="shutdown"
+VERBOSE=
 
 readonly USAGE="Backup virsh guest domains
 
@@ -48,6 +49,8 @@ Options:
                  done and backuped data may be inconsistent. Other self-
                  explanatory values for METHOD are \"suspend\" and
                  \"shutdown\". (default is $PAUSE_METHOD)
+  -v, --verbose
+                 Print informative messages on standard output
 
   -h, --help     Print this help message and exit
   -V, --version  Print script version and exit
@@ -57,10 +60,13 @@ Options:
 
 # Log a message on STDOUT
 log() {
-	echo "$NAME: $*"
+	echo "$NAME: ($$) $*"
 }
 info() {
-	log "INFO: $*"
+	if [ -n "$VERBOSE" ]
+	then
+		log "$*"
+	fi
 }
 warn() {
 	log "WARNING: $*" >&2
@@ -333,6 +339,9 @@ do
 		PAUSE_METHOD="$2"
 		shift
 		;;
+	-v|--verbose)
+		VERBOSE=1
+		;;
 	--)
 		shift
 		break
@@ -387,8 +396,6 @@ do
 		|| die "domain \`$1' not found"	
 
 	info "backup domain \`$domname'"
-	virsh dominfo "$domname"
-
 	BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
 	mkdir -v "$BACKUP_DIR" \
 		|| die "can't create backup directory \`$BACKUP_DIR'"
