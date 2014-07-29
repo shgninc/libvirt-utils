@@ -161,12 +161,14 @@ save_blkdev() {
 
 # Wait until domain $1 is in state $2
 wait_until_domstate() {
-	local dom="${1?}" state="${2?}"
+	local dom="${1?}" state="${2?}" i=0
 	info "waiting for domain \`$dom' to be in $state state..."
 	while [ "`virsh domstate "$dom"`" != "$state" ]
 	do
+		i=`expr $i + 1`
 		sleep 1
 	done
+	info "domain \`$dom' is in $state state (${i}s elapsed)"
 }
 
 # Ensures domain $1 is paused (according to PAUSE_METHOD) when running $@
