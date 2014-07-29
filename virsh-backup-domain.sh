@@ -149,13 +149,14 @@ save_domxml() {
 # Save the content of block device $1 to GZ file $2 and SHA file $3
 save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
+	local file=`basename "$dst"`
 	info "saving block device \`$src'..."
 	ionice pv --rate-limit "$RATE_LIMIT" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
 	info "wrote compressed file \`$dst'"
-	sed -i "s|-|${dst##*/}|" "$sha"
+	sed -i "s|-|${file}|" "$sha"
 	info "wrote checksum file \`$sha'"
 }
 
