@@ -368,6 +368,7 @@ then
 	die "command \`virsh' not found"
 else
 	info "virsh version `virsh --version`"
+	info "pause method is \`$PAUSE_METHOD'"
 fi
 
 trap '
