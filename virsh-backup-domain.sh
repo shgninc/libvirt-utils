@@ -28,6 +28,7 @@ BACKUP_DIR=
 RATE_LIMIT="5m"
 PAUSE_METHOD="shutdown"
 VERBOSE=
+QUIET=
 
 readonly USAGE="Backup virsh guest domains
 
@@ -49,8 +50,8 @@ Options:
                  done and backuped data may be inconsistent. Other self-
                  explanatory values for METHOD are \"suspend\" and
                  \"shutdown\". (default is $PAUSE_METHOD)
-  -v, --verbose
-                 Print informative messages on standard output
+  -q, --quiet    Do not print the progress bar, nor the warning messages
+  -v, --verbose  Print informative messages on standard output
 
   -h, --help     Print this help message and exit
   -V, --version  Print script version and exit
@@ -69,7 +70,10 @@ info() {
 	fi
 }
 warn() {
-	log "WARNING: $*" >&2
+	if [ -z "$QUIET" ]
+	then
+		log "WARNING: $*" >&2
+	fi
 }
 # Print a message on STDERR and quit
 die() {
@@ -157,7 +161,7 @@ save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
 	local file=`basename "$dst"`
 	info "saving block device \`$src'..."
-	ionice pv --rate-limit "$RATE_LIMIT" --name "$src" -- "$src" \
+	ionice pv ${QUIET:+"--quiet"} --rate-limit "$RATE_LIMIT" --name "$src" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
@@ -338,6 +342,9 @@ do
 	-p|--pause)
 		PAUSE_METHOD="$2"
 		shift
+		;;
+	-q|--quiet)
+		QUIET=1
 		;;
 	-v|--verbose)
 		VERBOSE=1
