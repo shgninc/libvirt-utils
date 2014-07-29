@@ -157,7 +157,7 @@ save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
 	local file=`basename "$dst"`
 	info "saving block device \`$src'..."
-	ionice pv --rate-limit "$RATE_LIMIT" -- "$src" \
+	ionice pv --rate-limit "$RATE_LIMIT" --name "$src" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
