@@ -26,7 +26,7 @@ OUTPUT_DIR="$PWD"
 LVM_SNAPSHOT_DEV=
 BACKUP_DIR=
 RATE_LIMIT="10m"
-PAUSE_METHOD="suspend"
+PAUSE_METHOD="shutdown"
 
 readonly USAGE="Backup virsh guest domains
 
