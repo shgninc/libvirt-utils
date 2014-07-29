@@ -240,7 +240,9 @@ save_domdisks() {
 		then
 			run_dompaused "$dom" \
 				save_blkdev "$src" "$out" "$sha"
-		else
+
+		elif [ "$src" != "-" ]
+		then	
 			warn "skipped block device \`$s'"
 		fi
 	done
