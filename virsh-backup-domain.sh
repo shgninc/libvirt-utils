@@ -25,7 +25,7 @@ LVM_SNAPSHOT_SIZE='1G'
 OUTPUT_DIR="$PWD"
 LVM_SNAPSHOT_DEV=
 BACKUP_DIR=
-RATE_LIMIT="5m"
+RATE_LIMIT="10m"
 readonly USAGE="Backup virsh guest domains
 
 Usage:
