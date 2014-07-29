@@ -47,7 +47,7 @@ Options:
                  already running. If METHOD is \"none\", then nothing is
                  done and backuped data may be inconsistent. Other self-
                  explanatory values for METHOD are \"suspend\" and
-                 \"shutdown\". (default is $BACKUP_METHOD)
+                 \"shutdown\". (default is $PAUSE_METHOD)
 
   -h, --help     Print this help message and exit
   -V, --version  Print script version and exit
@@ -57,7 +57,7 @@ Options:
 
 # Log a message on STDOUT
 log() {
-	echo "[`date -u '+%F %T'`] $NAME: $*"
+	echo "$NAME: $*"
 }
 info() {
 	log "INFO: $*"
@@ -372,9 +372,9 @@ trap '
 	die "interrupted"
 ' TERM KILL QUIT INT HUP
 
-info "start"
+info "start: `date`"
 trap '
-	info "terminate"
+	info "terminate: `date`"
 ' EXIT
 
 while [ $# -gt 0 ]
