@@ -26,6 +26,8 @@ OUTPUT_DIR="$PWD"
 LVM_SNAPSHOT_DEV=
 BACKUP_DIR=
 RATE_LIMIT="10m"
+PAUSE_METHOD="suspend"
+
 readonly USAGE="Backup virsh guest domains
 
 Usage:
@@ -36,9 +38,16 @@ Options:
                  Write backups in directory DIR (default is \".\")
   -l, --list     List all defined domains
   -L, --limit RATE
-                 Limit the IO transfer to a maximum of RATE bytes per second.
-                 A suffix of \"k\", \"m\", \"g\", or \"t\" can be added to denote
-                 kilobytes (*1024), megabytes, and so on. (default is $RATE_LIMIT)
+                 Limit the IO transfer to a maximum of RATE bytes per
+                 second. A suffix of \"k\", \"m\", \"g\", or \"t\" can be
+                 added to denote kilobytes (*1024), megabytes, and so on.
+                 (default is $RATE_LIMIT)
+  -p, --pause METHOD
+                 Specifies what to do if the guest domain to backup is
+                 already running. If METHOD is \"none\", then nothing is
+                 done and backuped data may be inconsistent. Other self-
+                 explanatory values for METHOD are \"suspend\" and
+                 \"shutdown\". (default is $BACKUP_METHOD)
 
   -h, --help     Print this help message and exit
   -V, --version  Print script version and exit
@@ -150,7 +159,17 @@ save_blkdev() {
 	info "wrote checksum file \`$sha'"
 }
 
-# Ensures domain $1 is not running during execution of command $@
+# Wait until domain $1 is in state $2
+wait_until_domstate() {
+	local dom="${1?}" state="${2?}"
+	info "waiting for domain \`$dom' to be in $state state..."
+	while [ "`virsh domstate "$dom"`" != "$state" ]
+	do
+		sleep 1
+	done
+}
+
+# Ensures domain $1 is paused (according to PAUSE_METHOD) when running $@
 run_dompaused() {
 	local dom="${1?}"
 	local state=`virsh domstate "$dom"`
@@ -159,9 +178,28 @@ run_dompaused() {
 	then
 		if [ "$state" = "running" ]
 		then
-			virsh suspend "$dom"
-			"$@"
-			virsh resume "$dom"
+			case "$PAUSE_METHOD" in
+				shutdown)
+					virsh shutdown "$dom"
+					wait_until_domstate "$dom" "shut off"
+					"$@"
+					virsh start "$dom"
+					wait_until_domstate "$dom" "running"
+					;;
+				suspend)
+					virsh suspend "$dom"
+					wait_until_domstate "$dom" "paused"
+					"$@"
+					virsh resume "$dom"
+					wait_until_domstate "$dom" "running"
+					;;
+				none)
+					warn "domain \`$dom' is still running during the backup"
+					"$@"
+					;;
+				*)
+					die "invalid pause method \`$PAUSE_METHOD'"
+			esac
 		else
 			"$@"
 		fi
@@ -288,6 +326,10 @@ do
 		RATE_LIMIT="$2"
 		shift
 		;;
+	-p|--pause)
+		PAUSE_METHOD="$2"
+		shift
+		;;
 	--)
 		shift
 		break
@@ -305,12 +347,19 @@ done
 if [ `id -u` -ne 0 ]
 then
 	die "need root permission"
+
 elif [ ! -d "$OUTPUT_DIR" ]
 then
 	die "output directory \`$OUTPUT_DIR' not found"
+
 elif echo "$RATE_LIMIT" | grep -vqE '^[0-9]+[kmgt]?$'
 then
 	die "invalid rate \`$RATE_LIMIT'"
+
+elif echo "$PAUSE_METHOD" | grep -vqE '^(none|suspend|shutdown)$'
+then
+	die "invalid pause method \`$PAUSE_METHOD'"
+
 elif ! which virsh >/dev/null 2>&1
 then
 	die "command \`virsh' not found"
