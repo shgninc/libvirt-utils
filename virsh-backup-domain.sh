@@ -77,7 +77,7 @@ virsh() {
 	command virsh --quiet "$@"
 }
 nice() {
-	command nice -19 "$@"
+	command nice -10 "$@"
 }
 ionice() {
 	command ionice -c 3 -t "$@"
