@@ -103,6 +103,20 @@ virsh_domblklist() {
 			}'
 }
 
+# Get the name of a domain
+virsh_domname() {
+	local id="${1?}"
+	case "$id" in
+		[0-9]*)
+			virsh domname "$id"
+			;;
+		*)
+			virsh list --all \
+				| awk -v"name=$id" '$2 == name { print name }' \
+				| fgrep "$id"
+	esac
+}
+
 # Print size in bytes for logical volume $1
 get_lvm_size() {
 	lvs --nosuffix --units b --noheadings "${1?}" \
@@ -314,7 +328,7 @@ trap '
 
 while [ $# -gt 0 ]
 do
-	domname=`virsh domname "$1"` \
+	domname=`virsh_domname "$1"` \
 		|| die "domain \`$1' not found"	
 
 	info "backup domain \`$domname'"
