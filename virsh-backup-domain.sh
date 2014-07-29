@@ -61,7 +61,7 @@ Options:
 
 # Log a message on STDOUT
 log() {
-	echo "$NAME: ($$) $*"
+	echo "$NAME ($$): $*"
 }
 info() {
 	if [ -n "$VERBOSE" ]
