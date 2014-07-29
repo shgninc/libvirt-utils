@@ -396,7 +396,7 @@ do
 	save_domdisks "$domname" "$BACKUP_DIR"
 	#gen_restore_script "$domname" "$BACKUP_DIR"
 
-	info "wrote backup \`$BACKUP_DIR' (`du -sh "$BACKUP_DIR" | cut -f 1`)"
+	info "wrote backup directory \`$BACKUP_DIR' (`du -sh "$BACKUP_DIR" | cut -f 1`)"
 	BACKUP_DIR=
 
 	shift
