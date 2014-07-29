@@ -160,7 +160,7 @@ save_domxml() {
 save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
 	local file=`basename "$dst"`
-	info "saving block device \`$src'..."
+	info "saving data from block device \`$src'..."
 	ionice pv ${QUIET:+"--quiet"} --rate-limit "$RATE_LIMIT" --name "$src" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
@@ -179,7 +179,7 @@ wait_until_domstate() {
 		i=`expr $i + 1`
 		sleep 1
 	done
-	info "domain \`$dom' is in $state state (${i}s elapsed)"
+	info "domain \`$dom' is now in $state state (${i}s elapsed)"
 }
 
 # Ensures domain $1 is paused (according to PAUSE_METHOD) when running $@
@@ -383,8 +383,8 @@ elif ! which virsh >/dev/null 2>&1
 then
 	die "command \`virsh' not found"
 else
-	info "virsh version `virsh --version`"
-	info "pause method is \`$PAUSE_METHOD'"
+	info "virsh version is `virsh --version`"
+	info "guest pause method is \`$PAUSE_METHOD'"
 fi
 
 trap '
@@ -392,9 +392,9 @@ trap '
 	die "interrupted"
 ' TERM KILL QUIT INT HUP
 
-info "start: `date`"
+info "started on `date`"
 trap '
-	info "terminate: `date`"
+	info "finished on `date`"
 ' EXIT
 
 while [ $# -gt 0 ]
