@@ -20,7 +20,6 @@ set -u
 readonly NAME="`basename "$0"`"
 readonly VERSION="@VERSION@"
 readonly HOSTNAME="${HOSTNAME:-"`uname -n`"}"
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 LVM_SNAPSHOT_SIZE='1G'
 OUTPUT_DIR="$PWD"
 LVM_SNAPSHOT_DEV=
@@ -404,7 +403,7 @@ do
 
 	info "backup domain \`$domname'"
 	BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
-	mkdir -v "$BACKUP_DIR" \
+	mkdir -- "$BACKUP_DIR" \
 		|| die "can't create backup directory \`$BACKUP_DIR'"
 
 	save_domxml "$domname" "$BACKUP_DIR"
