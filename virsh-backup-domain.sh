@@ -136,6 +136,24 @@ save_blkdev() {
 	info "wrote checksum file \`$sha'"
 }
 
+# Ensures domain $1 is not running during execution of command $@
+run_dompaused() {
+	local dom="${1?}"
+	local state=`virsh domstate "$dom"`
+	shift
+	if [ $# -gt 0 ]
+	then
+		if [ "$state" = "running" ]
+		then
+			virsh suspend "$dom"
+			"$@"
+			virsh resume "$dom"
+		else
+			"$@"
+		fi
+	fi
+}
+
 # Save block disks of domain $1 to directory $2
 save_domdisks() {
 	local dom="${1?}" dir="${2?}" s= src= dsk= out= sha= snap=
@@ -149,17 +167,13 @@ save_domdisks() {
 		then
 			snap="${dom}_${dsk}"
 			LVM_SNAPSHOT_DEV="`dirname "$src"`/$snap"
-			virsh suspend "$dom"
-			lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$src"
-			virsh resume "$dom"
+			run_dompaused lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$src"
 			save_blkdev "$LVM_SNAPSHOT_DEV" "$out" "$sha"
 			lvremove -f "$LVM_SNAPSHOT_DEV"
 			LVM_SNAPSHOT_DEV=
 		elif [ -f "$src" ]
 		then
-			virsh suspend "$dom"
-			save_blkdev "$src" "$out" "$sha"
-			virsh resume "$dom"
+			run_dompaused save_blkdev "$src" "$out" "$sha"
 		else
 			warn "skipped block device \`$s'"
 		fi
