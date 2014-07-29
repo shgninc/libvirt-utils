@@ -17,7 +17,7 @@
 set -e
 set -u
 
-readonly NAME="${0##*/}"
+readonly NAME="`basename "$0"`"
 readonly VERSION="@VERSION@"
 readonly HOSTNAME="${HOSTNAME:-"`uname -n`"}"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
