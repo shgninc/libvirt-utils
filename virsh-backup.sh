@@ -257,7 +257,7 @@ open_backup_dir() {
 	then
 		die "backup directory \`$BACKUP_DIR' already exists"
 	else
-		BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
+		BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname.part"
 	fi
 	if mkdir -- "$BACKUP_DIR"
 	then
@@ -267,18 +267,30 @@ open_backup_dir() {
 	fi
 }
 close_backup_dir() {
-	BACKUP_DIR=
+	local final_dir="${BACKUP_DIR%.part}"
+	if [ ! -d "$BACKUP_DIR" ]
+	then
+		die "backup directory \`$BACKUP_DIR' not found"
+	elif ! mv "$BACKUP_DIR" "$final_dir"
+	then
+		die "failed to close backup directory \`$BACKUP_DIR'"
+	else
+		info "closed backup directory \`$BACKUP_DIR'"
+		BACKUP_DIR=
+	fi
 }
 
 backup_virsh_domain() {
-	local dom="${1?}" domname
+	local dom="${1?}" domname dir
 	if domname=`virsh_domname "$dom"`
 	then
-		info "backup domain \`$domname'"
+		info "backup domain \`$domname'..."
 		open_backup_dir "$domname"
 		save_domxml "$domname" "$BACKUP_DIR"
 		save_domdisks "$domname" "$BACKUP_DIR"
+		dir="${BACKUP_DIR%.part}"
 		close_backup_dir
+		echo "Wrote backup directory \`$dir'"
 	else
 		die "domain \`$dom' not found"	
 	fi
