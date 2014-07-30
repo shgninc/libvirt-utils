@@ -187,30 +187,36 @@ wait_until_domstate() {
 pause_domain() {
 	local dom="${1?}"
 	local state=`virsh domstate "$dom"`
-	if [ "$state" = "running" ] && [ "$PAUSE_METHOD" = "shutdown" ]
+	if [ "$state" = "running" ]
 	then
-		virsh shutdown "$dom"
-		wait_until_domstate "$dom" "shut off"
-	elif [ "$state" = "running" ] && [ "$PAUSE_METHOD" = "suspend" ]
-	then
-		virsh suspend "$dom"
-		wait_until_domstate "$dom" "paused"
-	fi > /dev/null
+		if [ "$PAUSE_METHOD" = "shutdown" ]
+		then
+			virsh shutdown "$dom"
+			wait_until_domstate "$dom" "shut off"
+		elif [ "$PAUSE_METHOD" = "suspend" ]
+		then
+			virsh suspend "$dom"
+			wait_until_domstate "$dom" "paused"
+		fi > /dev/null
+	fi
 }
 
 # Resume domain $1 according to PAUSE_METHOD
 resume_domain() {
 	local dom="${1?}"
 	local state=`virsh domstate "$dom"`
-	if [ "$state" = "shut off" ] && [ "$PAUSE_METHOD" = "shutdown" ]
+	if [ "$state" != "running" ]
 	then
-		virsh start "$dom"
-		wait_until_domstate "$dom" "running"
-	elif [ "$state" = "paused" ] && [ "$PAUSE_METHOD" = "suspend" ]
-	then
-		virsh resume "$dom"
-		wait_until_domstate "$dom" "running"
-	fi > /dev/null
+		if [ "$PAUSE_METHOD" = "shutdown" ]
+		then
+			virsh start "$dom"
+			wait_until_domstate "$dom" "running"
+		elif [ "$PAUSE_METHOD" = "suspend" ]
+		then
+			virsh resume "$dom"
+			wait_until_domstate "$dom" "running"
+		fi > /dev/null
+	fi
 }
 
 # Save block disks of domain $1 to directory $2
@@ -227,9 +233,11 @@ save_domdisks() {
 			snap="${dom}_${dsk}"
 			LVM_SNAPSHOT_DEV="`dirname "$src"`/$snap"
 			pause_domain "$dom"
+			info "create snapshot partition \`$snap'"
 			lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$src" > /dev/null
 			resume_domain "$dom"
 			save_blkdev "$LVM_SNAPSHOT_DEV" "$out" "$sha"
+			info "remove snapshot partition \`$snap'"
 			lvremove -f "$LVM_SNAPSHOT_DEV" > /dev/null
 			LVM_SNAPSHOT_DEV=
 		elif [ -f "$src" ]
