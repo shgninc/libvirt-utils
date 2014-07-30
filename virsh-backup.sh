@@ -28,6 +28,8 @@ RATE_LIMIT="0"
 PAUSE_METHOD="shutdown"
 VERBOSE=
 QUIET=
+HOST="$HOSTNAME"
+ACTION="backup"
 
 readonly USAGE="Backup virsh domains
 
@@ -37,6 +39,8 @@ Usage:
 Options:
   -d, --directory DIR
                  Write backups in directory DIR (default is \".\")
+  -f, --filter [HOST]
+                 List existing backups for HOST (default $HOSTNAME)
   -l, --list     List all defined domains
   -L, --limit RATE
                  Limit the IO transfer to a maximum of RATE bytes per
@@ -331,18 +335,29 @@ do
 		exec echo "$NAME version $VERSION"
 		;;
 	-d|--directory)
-		OUTPUT_DIR="$2"
+		OUTPUT_DIR="${2?"output directory"}"
 		shift
 		;;
+	-f|--filter)
+		ACTION="filter"
+		case "${2:-}" in
+			--*)
+				HOST="$HOSTNAME"
+				;;
+			*)
+				HOST="$2"
+				shift
+		esac
+		;;
 	-l|--list)
-		exec virsh list --all
+		ACTION="list"
 		;;
 	-L|--limit)
-		RATE_LIMIT="$2"
+		RATE_LIMIT="${2?"rate limit"}"
 		shift
 		;;
 	-p|--pause)
-		PAUSE_METHOD="$2"
+		PAUSE_METHOD="${2?"pause method"}"
 		shift
 		;;
 	-q|--quiet)
@@ -384,14 +399,25 @@ then
 elif ! which virsh >/dev/null 2>&1
 then
 	die "command \`virsh' not found"
-else
-	info "virsh version is `virsh --version`"
-	info "domain pause method is \`$PAUSE_METHOD'"
-	if [ "$RATE_LIMIT" = "0" ]
-	then
-		RATE_LIMIT=
-	fi
 fi
+
+case "$ACTION" in
+	list)
+		exec virsh list --all
+		;;
+	filter)
+		exec find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -regextype posix-egrep \
+			-regex '[0-9-]+.*' -print
+		;;
+	backup)
+		info "virsh version is `virsh --version`"
+		info "domain pause method is \`$PAUSE_METHOD'"
+		if [ "$RATE_LIMIT" = "0" ]
+		then
+			RATE_LIMIT=
+		fi
+		;;
+esac
 
 trap '
 	cleanup
