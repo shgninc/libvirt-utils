@@ -24,12 +24,12 @@ LVM_SNAPSHOT_SIZE='1G'
 OUTPUT_DIR="$PWD"
 LVM_SNAPSHOT_DEV=
 BACKUP_DIR=
-RATE_LIMIT="5m"
+RATE_LIMIT="0"
 PAUSE_METHOD="shutdown"
 VERBOSE=
 QUIET=
 
-readonly USAGE="Backup virsh guest domains
+readonly USAGE="Backup virsh domains
 
 Usage:
   $NAME [OPTIONS] [--] DOMAIN...
@@ -42,10 +42,11 @@ Options:
                  Limit the IO transfer to a maximum of RATE bytes per
                  second. A suffix of \"k\", \"m\", \"g\", or \"t\" can be
                  added to denote kilobytes (*1024), megabytes, and so on.
-                 (default is $RATE_LIMIT)
+				 The transfer rate is not limited if the value is 0 (zero).
+				 (default is $RATE_LIMIT)
   -p, --pause METHOD
-                 Specifies what to do if the guest domain to backup is
-                 already running. If METHOD is \"none\", then nothing is
+                 Specifies what to do if the domain to backup is already
+                 running. If METHOD is \"none\", then nothing is
                  done and backuped data may be inconsistent. Other self-
                  explanatory values for METHOD are \"suspend\" and
                  \"shutdown\". (default is $PAUSE_METHOD)
@@ -160,7 +161,7 @@ save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
 	local file=`basename "$dst"`
 	info "saving data from block device \`$src'..."
-	ionice pv ${QUIET:+"--quiet"} --rate-limit "$RATE_LIMIT" --name "$src" -- "$src" \
+	ionice pv ${QUIET:+"--quiet"} ${RATE_LIMIT:+"--rate-limit $RATE_LIMIT"} --name "$src" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
@@ -385,7 +386,11 @@ then
 	die "command \`virsh' not found"
 else
 	info "virsh version is `virsh --version`"
-	info "guest pause method is \`$PAUSE_METHOD'"
+	info "domain pause method is \`$PAUSE_METHOD'"
+	if [ "$RATE_LIMIT" = "0" ]
+	then
+		RATE_LIMIT=
+	fi
 fi
 
 trap '
