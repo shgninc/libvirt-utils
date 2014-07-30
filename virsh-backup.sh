@@ -17,7 +17,7 @@
 set -e
 set -u
 
-readonly NAME="`basename "$0"`"
+readonly NAME="@NAME@"
 readonly VERSION="@VERSION@"
 readonly HOSTNAME="${HOSTNAME:-"`uname -n`"}"
 LVM_SNAPSHOT_SIZE='1G'

@@ -22,5 +22,5 @@ clean::
 
 
 %: %.sh
-	sed -e 's|@VERSION@|$(VERSION)|g' $< > $@
+	sed -e 's|@NAME@|$@|g;s|@VERSION@|$(VERSION)|g' $< > $@
 	sh -n $@
