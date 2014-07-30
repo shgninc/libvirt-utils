@@ -161,7 +161,7 @@ save_domxml() {
 save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
 	local file=`basename "$dst"`
-	info "saving data from block device \`$src'..."
+	info "save data from block device \`$src'..."
 	ionice pv ${QUIET:+"--quiet"} ${RATE_LIMIT:+"--rate-limit $RATE_LIMIT"} --name "$src" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
@@ -174,7 +174,7 @@ save_blkdev() {
 # Wait until domain $1 is in state $2
 wait_until_domstate() {
 	local dom="${1?}" state="${2?}" i=0
-	info "waiting for domain \`$dom' to be in $state state..."
+	info "wait for domain \`$dom' to be in $state state..."
 	while [ "`virsh domstate "$dom"`" != "$state" ]
 	do
 		i=`expr $i + 1`
@@ -253,29 +253,28 @@ save_domdisks() {
 # Create a backup directory for domain name $1
 open_backup_dir() {
 	local domname="${1?}"
+	info "open backup directory \`$BACKUP_DIR'"
 	if [ -d "$BACKUP_DIR" ]
 	then
 		die "backup directory \`$BACKUP_DIR' already exists"
 	else
 		BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname.part"
 	fi
-	if mkdir -- "$BACKUP_DIR"
+	if ! mkdir -- "$BACKUP_DIR"
 	then
-		info "initialized backup directory \`$BACKUP_DIR'"
-	else
 		die "can't create backup directory \`$BACKUP_DIR'"
 	fi
 }
 close_backup_dir() {
 	local final_dir="${BACKUP_DIR%.part}"
+	info "close backup directory \`$BACKUP_DIR'"
 	if [ ! -d "$BACKUP_DIR" ]
 	then
 		die "backup directory \`$BACKUP_DIR' not found"
 	elif ! mv "$BACKUP_DIR" "$final_dir"
 	then
-		die "failed to close backup directory \`$BACKUP_DIR'"
+		die "failed to rename \`$BACKUP_DIR' to \`$final_dir'"
 	else
-		info "closed backup directory \`$BACKUP_DIR'"
 		BACKUP_DIR=
 	fi
 }
