@@ -67,7 +67,7 @@ Options:
 
 # Log a message
 log() {
-	echo "$NAME ($$): $*" >&2
+	echo "[`date '+%F %T'`] $NAME: $*"
 }
 info() {
 	if [ -n "$VERBOSE" ]
@@ -387,13 +387,13 @@ case "$ACTION" in
 				die "domain \`$1' not found"	
 			fi
 
-			echo "Backup domain \`$domname'..."
+			log "Backup domain \`$domname'..."
 			open_backup_dir "$domname"
 			save_domxml "$domname" "$BACKUP_DIR"
 			save_domdisks "$domname" "$BACKUP_DIR"
 			dir="${BACKUP_DIR%.part}"
 			close_backup_dir
-			echo "Wrote backup directory \`$dir'"
+			log "Wrote backup directory \`$dir'"
 
 			shift
 		done
