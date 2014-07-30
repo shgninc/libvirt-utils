@@ -42,8 +42,8 @@ Options:
                  Limit the IO transfer to a maximum of RATE bytes per
                  second. A suffix of \"k\", \"m\", \"g\", or \"t\" can be
                  added to denote kilobytes (*1024), megabytes, and so on.
-				 The transfer rate is not limited if the value is 0 (zero).
-				 (default is $RATE_LIMIT)
+                 The transfer rate is not limited if the value is 0 (zero).
+                 (default is $RATE_LIMIT)
   -p, --pause METHOD
                  Specifies what to do if the domain to backup is already
                  running. If METHOD is \"none\", then nothing is
