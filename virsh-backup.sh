@@ -181,11 +181,11 @@ pause_domain() {
 	then
 		if [ "$PAUSE_METHOD" = "shutdown" ]
 		then
-			virsh shutdown "$dom"
+			virsh shutdown "$dom" > /dev/null
 			wait_until_domstate "$dom" "shut off"
 		elif [ "$PAUSE_METHOD" = "suspend" ]
 		then
-			virsh suspend "$dom"
+			virsh suspend "$dom" > /dev/null
 			wait_until_domstate "$dom" "paused"
 		fi
 	fi
@@ -199,11 +199,11 @@ resume_domain() {
 	then
 		if [ "$PAUSE_METHOD" = "shutdown" ]
 		then
-			virsh start "$dom"
+			virsh start "$dom" > /dev/null
 			wait_until_domstate "$dom" "running"
 		elif [ "$PAUSE_METHOD" = "suspend" ]
 		then
-			virsh resume "$dom"
+			virsh resume "$dom" > /dev/null
 			wait_until_domstate "$dom" "running"
 		fi
 	fi
@@ -349,7 +349,8 @@ elif ! which virsh >/dev/null 2>&1
 then
 	die "command \`virsh' not found"
 else
-	trap 'cleanup; die "interrupted"' TERM KILL QUIT INT HUP
+	trap 'cleanup' EXIT
+	trap 'die "interrupted"' TERM KILL QUIT INT HUP
 	if [ "$RATE_LIMIT" = "0" ]
 	then
 		# normalize rate limit for option substitution
