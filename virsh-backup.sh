@@ -38,27 +38,28 @@ Usage:
 
 Options:
   -d, --directory DIR
-                 Write backups in directory DIR (default is \".\")
+                 Write backups in directory DIR (default is \".\").
   -f, --filter
-                 List existing backups for the current host
-  -l, --list     List all defined domains
+                 List existing backups for the current host.
+  -l, --list     List all defined domains.
   -L, --limit RATE
                  Limit the IO transfer to a maximum of RATE bytes per
                  second. A suffix of \"k\", \"m\", \"g\", or \"t\" can be
                  added to denote kilobytes (*1024), megabytes, and so on.
                  The transfer rate is not limited if the value is 0 (zero).
-                 (default is $RATE_LIMIT)
+                 (default is $RATE_LIMIT).
   -p, --pause METHOD
                  Specifies what to do if the domain to backup is already
                  running. If METHOD is \"none\", then nothing is
                  done and backuped data may be inconsistent. Other self-
                  explanatory values for METHOD are \"suspend\" and
-                 \"shutdown\". (default is $PAUSE_METHOD)
-  -q, --quiet    Do not print the progress bar
-  -v, --verbose  Print informative messages on standard output
+                 \"shutdown\". (default is $PAUSE_METHOD).
+  -q, --quiet    Do not print the progress bar. This option is activated
+                 automatically if standard output is not a terminal.
+  -v, --verbose  Print informative messages on standard output.
 
-  -h, --help     Print this help message and exit
-  -V, --version  Print script version and exit
+  -h, --help     Print this help message and exit.
+  -V, --version  Print script version and exit.
 "
 
 
