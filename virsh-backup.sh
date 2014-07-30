@@ -434,13 +434,8 @@ case "$ACTION" in
 		info "filter backups for host \`$HOSTNAME' in directory \`$OUTPUT_DIR'"
 		find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -regextype posix-egrep \
 				-regex '.*/[0-9]{4}-[01][0-9]-[0-3][0-9]\.[0-9]{6}\.[^\.]+\.'"$HOSTNAME"'\..*' \
-				-printf '%f\n' \
-			| sort \
-			| while read name
-				do
-					size=`du -sh "$OUTPUT_DIR/$name" | cut -f 1`
-					echo "$name: $size"
-				done
+				-exec du -sh {} \; \
+			| sort -k2
 		;;
 	backup)
 		info "virsh version is `virsh --version`"
