@@ -252,13 +252,16 @@ save_domdisks() {
 
 # Create a backup directory for domain name $1
 open_backup_dir() {
-	local domname="${1?}"
-	info "open backup directory \`$BACKUP_DIR'"
+	local domname="${1?}" open_dir="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname.part"
+	info "open backup directory \`$open_dir'"
 	if [ -d "$BACKUP_DIR" ]
 	then
 		die "backup directory \`$BACKUP_DIR' already exists"
+	elif [ -e "$open_dir" ]
+	then
+		die "target \`$open_dir' already exists"
 	else
-		BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname.part"
+		BACKUP_DIR="$open_dir"
 	fi
 	if ! mkdir -- "$BACKUP_DIR"
 	then
@@ -266,14 +269,14 @@ open_backup_dir() {
 	fi
 }
 close_backup_dir() {
-	local final_dir="${BACKUP_DIR%.part}"
+	local close_dir="${BACKUP_DIR%.part}"
 	info "close backup directory \`$BACKUP_DIR'"
 	if [ ! -d "$BACKUP_DIR" ]
 	then
 		die "backup directory \`$BACKUP_DIR' not found"
-	elif ! mv "$BACKUP_DIR" "$final_dir"
+	elif ! mv "$BACKUP_DIR" "$close_dir"
 	then
-		die "failed to rename \`$BACKUP_DIR' to \`$final_dir'"
+		die "failed to rename \`$BACKUP_DIR' to \`$close_dir'"
 	else
 		BACKUP_DIR=
 	fi
