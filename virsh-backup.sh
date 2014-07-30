@@ -63,9 +63,9 @@ Options:
 
 
 
-# Log a message on STDOUT
+# Log a message
 log() {
-	echo "$NAME ($$): $*"
+	echo "$NAME ($$): $*" >&2
 }
 info() {
 	if [ -n "$VERBOSE" ]
@@ -76,12 +76,12 @@ info() {
 warn() {
 	if [ -z "$QUIET" ]
 	then
-		log "WARNING: $*" >&2
+		log "WARNING: $*"
 	fi
 }
 # Print a message on STDERR and quit
 die() {
-	log "ERROR: $*" >&2
+	log "ERROR: $*"
 	exit 1
 }
 
@@ -183,40 +183,33 @@ wait_until_domstate() {
 	info "domain \`$dom' is now in $state state (${i}s elapsed)"
 }
 
-# Ensures domain $1 is paused (according to PAUSE_METHOD) when running $@
-run_dompaused() {
+# Pause domain $1 according to PAUSE_METHOD
+pause_domain() {
 	local dom="${1?}"
 	local state=`virsh domstate "$dom"`
-	shift
-	if [ $# -gt 0 ]
+	if [ "$state" = "running" ] && [ "$PAUSE_METHOD" = "shutdown" ]
 	then
-		if [ "$state" = "running" ]
-		then
-			case "$PAUSE_METHOD" in
-				shutdown)
-					virsh shutdown "$dom"
-					wait_until_domstate "$dom" "shut off"
-					"$@"
-					virsh start "$dom"
-					wait_until_domstate "$dom" "running"
-					;;
-				suspend)
-					virsh suspend "$dom"
-					wait_until_domstate "$dom" "paused"
-					"$@"
-					virsh resume "$dom"
-					wait_until_domstate "$dom" "running"
-					;;
-				none)
-					warn "domain \`$dom' is still running during the backup"
-					"$@"
-					;;
-				*)
-					die "invalid pause method \`$PAUSE_METHOD'"
-			esac
-		else
-			"$@"
-		fi
+		virsh shutdown "$dom"
+		wait_until_domstate "$dom" "shut off"
+	elif [ "$state" = "running" ] && [ "$PAUSE_METHOD" = "suspend" ]
+	then
+		virsh suspend "$dom"
+		wait_until_domstate "$dom" "paused"
+	fi
+}
+
+# Resume domain $1 according to PAUSE_METHOD
+resume_domain() {
+	local dom="${1?}"
+	local state=`virsh domstate "$dom"`
+	if [ "$state" = "shut off" ] && [ "$PAUSE_METHOD" = "shutdown" ]
+	then
+		virsh start "$dom"
+		wait_until_domstate "$dom" "running"
+	elif [ "$state" = "paused" ] && [ "$PAUSE_METHOD" = "suspend" ]
+	then
+		virsh resume "$dom"
+		wait_until_domstate "$dom" "running"
 	fi
 }
 
@@ -233,16 +226,17 @@ save_domdisks() {
 		then
 			snap="${dom}_${dsk}"
 			LVM_SNAPSHOT_DEV="`dirname "$src"`/$snap"
-			run_dompaused "$dom" \
-				lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$src"
+			pause_domain "$dom"
+			lvcreate -L"$LVM_SNAPSHOT_SIZE" -s -n "$snap" "$src" > /dev/null
+			resume_domain "$dom"
 			save_blkdev "$LVM_SNAPSHOT_DEV" "$out" "$sha"
-			lvremove -f "$LVM_SNAPSHOT_DEV"
+			lvremove -f "$LVM_SNAPSHOT_DEV" > /dev/null
 			LVM_SNAPSHOT_DEV=
 		elif [ -f "$src" ]
 		then
-			run_dompaused "$dom" \
-				save_blkdev "$src" "$out" "$sha"
-
+			pause_domain "$dom"
+			save_blkdev "$src" "$out" "$sha"
+			resume_domain "$dom"
 		elif [ "$src" != "-" ]
 		then	
 			warn "skipped block device \`$s'"
