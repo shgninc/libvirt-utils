@@ -195,7 +195,7 @@ pause_domain() {
 	then
 		virsh suspend "$dom"
 		wait_until_domstate "$dom" "paused"
-	fi
+	fi > /dev/null
 }
 
 # Resume domain $1 according to PAUSE_METHOD
@@ -210,7 +210,7 @@ resume_domain() {
 	then
 		virsh resume "$dom"
 		wait_until_domstate "$dom" "running"
-	fi
+	fi > /dev/null
 }
 
 # Save block disks of domain $1 to directory $2
@@ -280,7 +280,7 @@ backup_virsh_domain() {
 	local dom="${1?}" domname dir
 	if domname=`virsh_domname "$dom"`
 	then
-		info "backup domain \`$domname'..."
+		echo "Backup domain \`$domname'..."
 		open_backup_dir "$domname"
 		save_domxml "$domname" "$BACKUP_DIR"
 		save_domdisks "$domname" "$BACKUP_DIR"
@@ -291,71 +291,6 @@ backup_virsh_domain() {
 		die "domain \`$dom' not found"	
 	fi
 }
-
-
-# TODO: restore multiple disks
-gen_restore_script() {
-	local script="$OUTDIR/restore_$DOMAIN.sh"
-
-	log "generate shell script \`${script##*/}"
-	{
-		echo "#!/bin/sh
-#
-#                Restore domain $DOMAIN 
-#
-# Author: $USER
-# Origin: `hostname`
-# Date  : $(date -R)
-#
-set -e
-
-if [ \`id -u\` -ne 0 ]
-then
-	echo 'error: need root permissions' >&2
-	exit 2
-fi
-
-pvscan
-echo -n 'Target Volume Group? '
-read VG
-
-lvs
-echo -n 'Target Logical Volume? '
-read LV
-
-echo -n 'Size? '
-read SZ
-
-echo -n 'Restore domain $DOMAIN to \$VG/\$LV with size \$SZ? [y/N] '
-read ANS
-if [ \"\$ANS\" != y ]
-then
-	echo 'Canceled by user.'
-	exit 3
-fi
-
-cd \"\`dirname \"\$0\"\`\"
-echo 'Verifying SHA checksums...'
-ionice -c 3 sha1sum -c *.sha
-
-for f in *.raw.gz
-do
-	echo \"Creating volume \$VG/\$LV with size \$SZ...\"
-	lvcreate -L\$SZ -n \$LV \$VG
-	nice -19 gzip -dc \"\$f\" | ionice -c 3 dd of=\"/dev/\$VG/\$LV\"
-	break
-done
-
-echo 'Defining domain $DOMAIN'
-virsh define $DOMAIN.xml
-virsh dominfo $DOMAIN
-exit 0
-"
-	} > "$script"
-	chmod 0755 "$script"
-}
-
-
 
 
 
