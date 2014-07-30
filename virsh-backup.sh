@@ -87,9 +87,6 @@ die() {
 
 
 # Command wrappers
-virsh() {
-	command virsh --quiet "$@"
-}
 nice() {
 	command nice -10 "$@"
 }
@@ -134,7 +131,7 @@ virsh_domname() {
 			virsh domname "$id"
 			;;
 		*)
-			virsh list --all \
+			virsh --quiet list --all \
 				| awk -v"name=$id" '$2 == name { print name }' \
 				| fgrep "$id"
 	esac
