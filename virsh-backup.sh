@@ -39,8 +39,8 @@ Usage:
 Options:
   -d, --directory DIR
                  Write backups in directory DIR (default is \".\")
-  -f, --filter [HOST]
-                 List existing backups for HOST (default $HOSTNAME)
+  -f, --filter
+                 List existing backups for the current host
   -l, --list     List all defined domains
   -L, --limit RATE
                  Limit the IO transfer to a maximum of RATE bytes per
@@ -340,14 +340,6 @@ do
 		;;
 	-f|--filter)
 		ACTION="filter"
-		case "${2:-}" in
-			--*)
-				HOST="$HOSTNAME"
-				;;
-			*)
-				HOST="$2"
-				shift
-		esac
 		;;
 	-l|--list)
 		ACTION="list"
@@ -403,11 +395,16 @@ fi
 
 case "$ACTION" in
 	list)
-		exec virsh list --all
+		info "list all domains defined on host \`$HOSTNAME'"
+		virsh list --all
+		exit $?
 		;;
 	filter)
-		exec find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -regextype posix-egrep \
-			-regex '[0-9-]+.*' -print
+		info "filter backups for host \`$HOSTNAME' in directory \`$OUTPUT_DIR'"
+		find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -regextype posix-egrep \
+				-regex '.*/[0-9]{4}-[01][0-9]-[0-3][0-9]\.[0-9]{6}\.[^\.]+\.'"$HOSTNAME"'\..*' \
+				-printf '%f\n' \
+			| sort
 		;;
 	backup)
 		info "virsh version is `virsh --version`"
