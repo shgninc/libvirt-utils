@@ -394,6 +394,9 @@ case "$ACTION" in
 			backup_virsh_domain "$1"
 			shift
 		done
+		;;
+	*)
+		die "unknown action \`$ACTION'"
 esac
 
 exit 0
