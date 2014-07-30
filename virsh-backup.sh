@@ -54,7 +54,7 @@ Options:
                  done and backuped data may be inconsistent. Other self-
                  explanatory values for METHOD are \"suspend\" and
                  \"shutdown\". (default is $PAUSE_METHOD)
-  -q, --quiet    Do not print the progress bar, nor the warning messages
+  -q, --quiet    Do not print the progress bar
   -v, --verbose  Print informative messages on standard output
 
   -h, --help     Print this help message and exit
@@ -74,10 +74,7 @@ info() {
 	fi
 }
 warn() {
-	if [ -z "$QUIET" ]
-	then
-		log "WARNING: $*"
-	fi
+	log "WARNING: $*"
 }
 # Print a message on STDERR and quit
 die() {
