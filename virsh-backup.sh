@@ -348,6 +348,18 @@ then
 elif ! which virsh >/dev/null 2>&1
 then
 	die "command \`virsh' not found"
+else
+	trap 'cleanup; die "interrupted"' TERM KILL QUIT INT HUP
+	if [ "$RATE_LIMIT" = "0" ]
+	then
+		# normalize rate limit for option substitution
+		RATE_LIMIT=
+	fi
+	if [ ! -t 1 ]
+	then
+		# no progress bar unless output goes to a terminal
+		QUIET=1
+	fi
 fi
 
 case "$ACTION" in
@@ -365,12 +377,6 @@ case "$ACTION" in
 	backup)
 		info "virsh version is `virsh --version`"
 		info "domain pause method is \`$PAUSE_METHOD'"
-		if [ "$RATE_LIMIT" = "0" ]
-		then
-			# normalize rate limit for option substitution
-			RATE_LIMIT=
-		fi
-		trap 'cleanup; die "interrupted"' TERM KILL QUIT INT HUP
 		while [ $# -gt 0 ]
 		do
 			domname=`virsh_domname "$1"`
@@ -386,6 +392,7 @@ case "$ACTION" in
 			dir="${BACKUP_DIR%.part}"
 			close_backup_dir
 			echo "Wrote backup directory \`$dir'"
+
 			shift
 		done
 		;;
