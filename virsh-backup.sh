@@ -163,7 +163,7 @@ save_blkdev() {
 	local file=`basename "$dst"`
 	info "save data from block device \`$src'..."
 	ionice pv ${QUIET:+"--quiet"} ${RATE_LIMIT:+"--rate-limit $RATE_LIMIT"} --name "$src" -- "$src" \
-		| nice gzip -c \
+		| nice gzip --fast -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
 	info "wrote archive file \`$dst'"
