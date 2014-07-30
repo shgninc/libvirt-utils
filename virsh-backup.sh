@@ -86,14 +86,6 @@ die() {
 }
 
 
-# Command wrappers
-nice() {
-	command nice -10 "$@"
-}
-ionice() {
-	command ionice -c 3 -t "$@"
-}
-
 # Remove $BACKUP_DIR and $LVM_SNAPSHOT_DEV if they exist
 cleanup() {
 	if [ -d "$BACKUP_DIR" ]
@@ -162,7 +154,7 @@ save_blkdev() {
 	local src="${1?}" dst="${2?}" sha="${3?}"
 	local file=`basename "$dst"`
 	info "save data from block device \`$src'..."
-	ionice pv ${QUIET:+"--quiet"} ${RATE_LIMIT:+"--rate-limit $RATE_LIMIT"} --name "$src" -- "$src" \
+	ionice -c 3 -t -- pv ${QUIET:+"--quiet"} ${RATE_LIMIT:+"--rate-limit $RATE_LIMIT"} --name "$src" -- "$src" \
 		| nice gzip -c \
 		| ionice tee "$dst" \
 		| nice shasum > "$sha"
@@ -197,7 +189,7 @@ pause_domain() {
 		then
 			virsh suspend "$dom"
 			wait_until_domstate "$dom" "paused"
-		fi > /dev/null
+		fi
 	fi
 }
 
@@ -215,7 +207,7 @@ resume_domain() {
 		then
 			virsh resume "$dom"
 			wait_until_domstate "$dom" "running"
-		fi > /dev/null
+		fi
 	fi
 }
 
@@ -281,22 +273,6 @@ close_backup_dir() {
 		die "failed to rename \`$BACKUP_DIR' to \`$close_dir'"
 	else
 		BACKUP_DIR=
-	fi
-}
-
-backup_virsh_domain() {
-	local dom="${1?}" domname dir
-	if domname=`virsh_domname "$dom"`
-	then
-		echo "Backup domain \`$domname'..."
-		open_backup_dir "$domname"
-		save_domxml "$domname" "$BACKUP_DIR"
-		save_domdisks "$domname" "$BACKUP_DIR"
-		dir="${BACKUP_DIR%.part}"
-		close_backup_dir
-		echo "Wrote backup directory \`$dir'"
-	else
-		die "domain \`$dom' not found"	
 	fi
 }
 
@@ -399,7 +375,19 @@ case "$ACTION" in
 		trap 'cleanup; die "interrupted"' TERM KILL QUIT INT HUP
 		while [ $# -gt 0 ]
 		do
-			backup_virsh_domain "$1"
+			domname=`virsh_domname "$1"`
+			if [ -z "$domname" ]
+			then
+				die "domain \`$1' not found"	
+			fi
+
+			echo "Backup domain \`$domname'..."
+			open_backup_dir "$domname"
+			save_domxml "$domname" "$BACKUP_DIR"
+			save_domdisks "$domname" "$BACKUP_DIR"
+			dir="${BACKUP_DIR%.part}"
+			close_backup_dir
+			echo "Wrote backup directory \`$dir'"
 			shift
 		done
 		;;
