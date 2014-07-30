@@ -16,6 +16,7 @@
 #
 set -e
 set -u
+export PATH='/usr/local/bin:/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin'
 
 readonly NAME="@NAME@"
 readonly VERSION="@VERSION@"
