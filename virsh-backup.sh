@@ -250,6 +250,41 @@ save_domdisks() {
 	done
 }
 
+# Create a backup directory for domain name $1
+open_backup_dir() {
+	local domname="${1?}"
+	if [ -d "$BACKUP_DIR" ]
+	then
+		die "backup directory \`$BACKUP_DIR' already exists"
+	else
+		BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
+	fi
+	if mkdir -- "$BACKUP_DIR"
+	then
+		info "initialized backup directory \`$BACKUP_DIR'"
+	else
+		die "can't create backup directory \`$BACKUP_DIR'"
+	fi
+}
+close_backup_dir() {
+	BACKUP_DIR=
+}
+
+backup_virsh_domain() {
+	local dom="${1?}" domname
+	if domname=`virsh_domname "$dom"`
+	then
+		info "backup domain \`$domname'"
+		open_backup_dir "$domname"
+		save_domxml "$domname" "$BACKUP_DIR"
+		save_domdisks "$domname" "$BACKUP_DIR"
+		close_backup_dir
+	else
+		die "domain \`$dom' not found"	
+	fi
+}
+
+
 # TODO: restore multiple disks
 gen_restore_script() {
 	local script="$OUTDIR/restore_$DOMAIN.sh"
@@ -394,54 +429,34 @@ case "$ACTION" in
 	list)
 		info "list all domains defined on host \`$HOSTNAME'"
 		virsh list --all
-		exit $?
 		;;
 	filter)
 		info "filter backups for host \`$HOSTNAME' in directory \`$OUTPUT_DIR'"
 		find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -regextype posix-egrep \
 				-regex '.*/[0-9]{4}-[01][0-9]-[0-3][0-9]\.[0-9]{6}\.[^\.]+\.'"$HOSTNAME"'\..*' \
 				-printf '%f\n' \
-			| sort
+			| sort \
+			| while read name
+				do
+					size=`du -sh "$OUTPUT_DIR/$name" | cut -f 1`
+					echo "$name: $size"
+				done
 		;;
 	backup)
 		info "virsh version is `virsh --version`"
 		info "domain pause method is \`$PAUSE_METHOD'"
 		if [ "$RATE_LIMIT" = "0" ]
 		then
+			# normalize rate limit for option substitution
 			RATE_LIMIT=
 		fi
-		;;
+		trap 'cleanup; die "interrupted"' TERM KILL QUIT INT HUP
+		while [ $# -gt 0 ]
+		do
+			backup_virsh_domain "$1"
+			shift
+		done
 esac
-
-trap '
-	cleanup
-	die "interrupted"
-' TERM KILL QUIT INT HUP
-
-info "started on `date`"
-trap '
-	info "finished on `date`"
-' EXIT
-
-while [ $# -gt 0 ]
-do
-	domname=`virsh_domname "$1"` \
-		|| die "domain \`$1' not found"	
-
-	info "backup domain \`$domname'"
-	BACKUP_DIR="$OUTPUT_DIR/`date -u '+%F.%H%M%S'`.$NAME.$HOSTNAME.$domname"
-	mkdir -- "$BACKUP_DIR" \
-		|| die "can't create backup directory \`$BACKUP_DIR'"
-
-	save_domxml "$domname" "$BACKUP_DIR"
-	save_domdisks "$domname" "$BACKUP_DIR"
-	#gen_restore_script "$domname" "$BACKUP_DIR"
-
-	info "wrote backup directory \`$BACKUP_DIR' (`du -sh "$BACKUP_DIR" | cut -f 1`)"
-	BACKUP_DIR=
-
-	shift
-done
 
 exit 0
 
